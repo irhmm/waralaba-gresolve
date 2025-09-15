@@ -193,17 +193,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clear local session first to ensure UI updates immediately
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      
+      // Try to sign out from server, but don't fail if session is already invalid
+      await supabase.auth.signOut({ scope: 'local' });
+      
       toast({
         title: "Success",
         description: "Signed out successfully!",
       });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "An error occurred";
+      // Even if server signout fails, local state is cleared, so show success
+      console.warn('Logout warning:', error);
       toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive",
+        title: "Success", 
+        description: "Signed out successfully!",
       });
     }
   };
