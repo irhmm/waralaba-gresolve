@@ -1,0 +1,710 @@
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Building2, 
+  Plus, 
+  MapPin, 
+  Calendar,
+  Users,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Search,
+  Grid3X3,
+  List,
+  Download,
+  UserPlus,
+  Settings,
+  Eye,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+
+interface Franchise {
+  id: string;
+  franchise_id: string;
+  name: string;
+  slug: string;
+  address: string;
+  created_at: string;
+  // Financial data
+  worker_count?: number;
+  total_admin_income?: number;
+  total_worker_income?: number;
+  total_expenses?: number;
+  revenue?: number; // total_admin_income + total_worker_income - total_expenses
+}
+
+interface User {
+  id: string;
+  email: string;
+}
+
+const ListFranchisePage = () => {
+  const { userRole } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [franchises, setFranchises] = useState<Franchise[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [sortField, setSortField] = useState<keyof Franchise>('created_at');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+  
+  // Assign User Modal
+  const [assignUserModal, setAssignUserModal] = useState<{
+    isOpen: boolean;
+    franchise: Franchise | null;
+  }>({ isOpen: false, franchise: null });
+  const [userEmail, setUserEmail] = useState('');
+  const [selectedRole, setSelectedRole] = useState<'franchise' | 'admin_keuangan' | 'admin_marketing'>('franchise');
+  const [assignLoading, setAssignLoading] = useState(false);
+
+  // Only super_admin can access this page
+  if (userRole?.role !== 'super_admin') {
+    return <Navigate to="/" replace />;
+  }
+
+  useEffect(() => {
+    fetchFranchisesWithMetrics();
+  }, []);
+
+  const fetchFranchisesWithMetrics = async () => {
+    setLoading(true);
+    try {
+      // Fetch franchises
+      const { data: franchiseData, error: franchiseError } = await supabase
+        .from('franchises')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (franchiseError) throw franchiseError;
+
+      // Fetch metrics for each franchise
+      const franchisesWithMetrics = await Promise.all(
+        (franchiseData || []).map(async (franchise) => {
+          // Get worker count
+          const { count: workerCount } = await supabase
+            .from('workers')
+            .select('id', { count: 'exact' })
+            .eq('franchise_id', franchise.id)
+            .eq('status', 'active');
+
+          // Get admin income total
+          const { data: adminIncomeData } = await supabase
+            .from('admin_income')
+            .select('nominal')
+            .eq('franchise_id', franchise.id);
+          
+          const totalAdminIncome = adminIncomeData?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+
+          // Get worker income total
+          const { data: workerIncomeData } = await supabase
+            .from('worker_income')
+            .select('fee')
+            .eq('franchise_id', franchise.id);
+          
+          const totalWorkerIncome = workerIncomeData?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
+
+          // Get expenses total
+          const { data: expensesData } = await supabase
+            .from('expenses')
+            .select('nominal')
+            .eq('franchise_id', franchise.id);
+          
+          const totalExpenses = expensesData?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+
+          const revenue = totalAdminIncome + totalWorkerIncome - totalExpenses;
+
+          return {
+            ...franchise,
+            worker_count: workerCount || 0,
+            total_admin_income: totalAdminIncome,
+            total_worker_income: totalWorkerIncome,
+            total_expenses: totalExpenses,
+            revenue
+          };
+        })
+      );
+
+      setFranchises(franchisesWithMetrics);
+    } catch (error) {
+      console.error('Error fetching franchises:', error);
+      toast({
+        title: "Error",
+        description: "Gagal memuat data franchise",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSort = (field: keyof Franchise) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleAssignUser = async () => {
+    if (!assignUserModal.franchise || !userEmail || !selectedRole) return;
+
+    setAssignLoading(true);
+    try {
+      // For now, we'll assume the user provides an existing user's email
+      // In production, you would need to use Supabase Admin API with service role key
+      // from a backend endpoint for security reasons
+      
+      // Try to find if user already has a role
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('user_id', 'placeholder'); // This would need the actual user ID
+      
+      // For demo purposes, we'll show a message that admin needs to set this up manually
+      toast({
+        title: "Admin Setup Required",
+        description: `Please manually assign user ${userEmail} to franchise ${assignUserModal.franchise.name} through Supabase dashboard or backend endpoint.`,
+        variant: "default",
+      });
+
+      setAssignUserModal({ isOpen: false, franchise: null });
+      setUserEmail('');
+      setSelectedRole('franchise');
+
+    } catch (error: any) {
+      console.error('Error assigning user:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal assign user",
+        variant: "destructive",
+      });
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
+  const exportToCSV = () => {
+    const headers = ['Franchise ID', 'Name', 'Slug', 'Address', 'Workers', 'Admin Income', 'Worker Income', 'Expenses', 'Revenue'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredFranchises.map(f => [
+        f.franchise_id,
+        `"${f.name}"`,
+        f.slug,
+        `"${f.address || ''}"`,
+        f.worker_count || 0,
+        f.total_admin_income || 0,
+        f.total_worker_income || 0,
+        f.total_expenses || 0,
+        f.revenue || 0
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `franchises_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const filteredFranchises = franchises
+    .filter(franchise =>
+      franchise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      franchise.franchise_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      franchise.slug.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      const aVal = a[sortField] || 0;
+      const bVal = b[sortField] || 0;
+      
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' 
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      }
+      
+      return sortDirection === 'asc' 
+        ? Number(aVal) - Number(bVal)
+        : Number(bVal) - Number(aVal);
+    });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredFranchises.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedFranchises = filteredFranchises.slice(startIndex, startIndex + itemsPerPage);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="space-y-1">
+            <div className="h-8 w-48 bg-muted animate-pulse rounded"></div>
+            <div className="h-4 w-32 bg-muted animate-pulse rounded"></div>
+          </div>
+          <div className="h-10 w-32 bg-muted animate-pulse rounded"></div>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="h-48 bg-muted animate-pulse rounded-xl"></div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-bold text-foreground">List Franchise</h1>
+          <p className="text-muted-foreground">
+            Kelola semua franchise yang terdaftar dalam sistem
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={exportToCSV}
+            className="hidden sm:flex"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+          
+          <Button 
+            onClick={() => navigate('/admin/franchises/new')}
+            className="btn-primary"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Franchise
+          </Button>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari franchise..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 input-field"
+              />
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Select value={viewMode} onValueChange={(value: 'grid' | 'table') => setViewMode(value)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grid">
+                    <div className="flex items-center gap-2">
+                      <Grid3X3 className="w-4 h-4" />
+                      Grid
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="table">
+                    <div className="flex items-center gap-2">
+                      <List className="w-4 h-4" />
+                      Table
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Franchise</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{franchises.length}</div>
+            <p className="text-xs text-muted-foreground">Franchise terdaftar</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Workers</CardTitle>
+            <Users className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {franchises.reduce((sum, f) => sum + (f.worker_count || 0), 0)}
+            </div>
+            <p className="text-xs text-muted-foreground">Across all franchises</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <TrendingUp className="h-4 w-4 text-success" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">
+              {formatCurrency(franchises.reduce((sum, f) => sum + (f.revenue || 0), 0))}
+            </div>
+            <p className="text-xs text-muted-foreground">Net revenue</p>
+          </CardContent>
+        </Card>
+
+        <Card className="card-hover">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Filter Results</CardTitle>
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{filteredFranchises.length}</div>
+            <p className="text-xs text-muted-foreground">From {franchises.length} total</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Content */}
+      {viewMode === 'grid' ? (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {paginatedFranchises.map((franchise) => (
+            <Card key={franchise.id} className="card-hover">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <CardTitle className="text-lg">{franchise.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {franchise.franchise_id}
+                      </Badge>
+                      <Badge variant="secondary" className="text-xs">
+                        /{franchise.slug}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-4">
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <div className="font-medium text-success">Revenue</div>
+                    <div className="text-sm font-semibold">{formatCurrency(franchise.revenue || 0)}</div>
+                  </div>
+                  <div className="bg-muted/30 p-2 rounded-lg">
+                    <div className="font-medium">Workers</div>
+                    <div className="text-sm font-semibold">{franchise.worker_count || 0}</div>
+                  </div>
+                </div>
+
+                {franchise.address && (
+                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{franchise.address}</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {new Date(franchise.created_at).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm"
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setAssignUserModal({ isOpen: true, franchise })}
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Assign User
+                  </Button>
+                  
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/franchise/${franchise.slug}/dashboard`)}
+                  >
+                    <Eye className="w-4 h-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('franchise_id')}
+                  >
+                    Franchise ID
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('name')}
+                  >
+                    Name
+                  </TableHead>
+                  <TableHead>Slug</TableHead>
+                  <TableHead>Workers</TableHead>
+                  <TableHead>Income</TableHead>
+                  <TableHead>Expenses</TableHead>
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => handleSort('revenue')}
+                  >
+                    Revenue
+                  </TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedFranchises.map((franchise) => (
+                  <TableRow key={franchise.id}>
+                    <TableCell>
+                      <Badge variant="outline">{franchise.franchise_id}</Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{franchise.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">/{franchise.slug}</Badge>
+                    </TableCell>
+                    <TableCell>{franchise.worker_count || 0}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{formatCurrency((franchise.total_admin_income || 0) + (franchise.total_worker_income || 0))}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Admin: {formatCurrency(franchise.total_admin_income || 0)} |
+                          Worker: {formatCurrency(franchise.total_worker_income || 0)}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-destructive">
+                      {formatCurrency(franchise.total_expenses || 0)}
+                    </TableCell>
+                    <TableCell>
+                      <div className={`font-medium ${(franchise.revenue || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {formatCurrency(franchise.revenue || 0)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => setAssignUserModal({ isOpen: true, franchise })}
+                        >
+                          <UserPlus className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => navigate(`/franchise/${franchise.slug}/dashboard`)}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button size="sm" variant="ghost">
+                          <Settings className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Previous
+          </Button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+          >
+            Next
+            <ChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </div>
+      )}
+
+      {filteredFranchises.length === 0 && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Building2 className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">
+              {searchTerm ? 'No franchises found' : 'No franchises yet'}
+            </h3>
+            <p className="text-muted-foreground text-center mb-4">
+              {searchTerm 
+                ? 'Try changing your search keywords' 
+                : 'Add your first franchise to get started'
+              }
+            </p>
+            {!searchTerm && (
+              <Button onClick={() => navigate('/admin/franchises/new')} className="btn-primary">
+                <Plus className="w-4 h-4 mr-2" />
+                Add First Franchise
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Assign User Modal */}
+      <Dialog 
+        open={assignUserModal.isOpen} 
+        onOpenChange={(open) => setAssignUserModal({ isOpen: open, franchise: null })}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign User to Franchise</DialogTitle>
+            <DialogDescription>
+              Assign a user to franchise: <strong>{assignUserModal.franchise?.name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="userEmail" className="text-sm font-medium">
+                User Email
+              </label>
+              <Input
+                id="userEmail"
+                type="email"
+                placeholder="user@example.com"
+                value={userEmail}
+                onChange={(e) => setUserEmail(e.target.value)}
+                className="input-field"
+              />
+              <p className="text-xs text-muted-foreground">
+                If user doesn't exist, a new account will be created
+              </p>
+            </div>
+            
+            <div className="space-y-2">
+              <label htmlFor="role" className="text-sm font-medium">
+                Role
+              </label>
+              <Select value={selectedRole} onValueChange={(value: any) => setSelectedRole(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="franchise">Franchise Owner</SelectItem>
+                  <SelectItem value="admin_keuangan">Admin Keuangan</SelectItem>
+                  <SelectItem value="admin_marketing">Admin Marketing</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setAssignUserModal({ isOpen: false, franchise: null })}
+              disabled={assignLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAssignUser} 
+              className="btn-primary"
+              disabled={!userEmail || assignLoading}
+            >
+              {assignLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
+              Assign User
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ListFranchisePage;

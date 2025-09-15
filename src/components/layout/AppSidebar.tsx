@@ -23,7 +23,8 @@ import {
   BarChart3,
   Wallet,
   UserCheck,
-  Receipt
+  Receipt,
+  Plus
 } from 'lucide-react';
 
 const menuItems = {
@@ -34,9 +35,14 @@ const menuItems = {
       icon: BarChart3,
     },
     {
-      title: 'Management Franchise',
-      url: '/franchises',
+      title: 'List Franchise',
+      url: '/admin/franchises',
       icon: Building2,
+    },
+    {
+      title: 'Add Franchise',
+      url: '/admin/franchises/new',
+      icon: Plus,
     },
     {
       title: 'User Management',
