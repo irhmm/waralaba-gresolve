@@ -47,7 +47,32 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
     }
   };
 
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const checkUserExists = async (email: string): Promise<boolean> => {
+    try {
+      // Check if user exists in auth.users via admin endpoint
+      const { data, error } = await supabase.functions.invoke('check-user-exists', {
+        body: { email: email.trim() }
+      });
+      
+      if (error) {
+        console.warn('Could not verify user existence:', error);
+        return true; // Proceed anyway if check fails
+      }
+      
+      return data?.exists === true;
+    } catch (error) {
+      console.warn('Error checking user existence:', error);
+      return true; // Proceed anyway if check fails
+    }
+  };
+
   const handleAssignRole = async () => {
+    // Basic validation
     if (!email || !selectedRole) {
       toast({
         title: "Error",
@@ -57,6 +82,17 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
       return;
     }
 
+    // Email format validation
+    if (!validateEmail(email.trim())) {
+      toast({
+        title: "Error",
+        description: "Format email tidak valid",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Franchise validation for specific roles
     if ((selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing') && !franchiseId) {
       toast({
         title: "Error", 
@@ -68,8 +104,19 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
 
     setLoading(true);
     try {
-      console.log('Calling assign-role function with:', { email, role: selectedRole, franchise_id: franchiseId || null });
+      console.log('Validating user and assigning role:', { email: email.trim(), role: selectedRole, franchise_id: franchiseId || null });
       
+      // Check if user exists first
+      const userExists = await checkUserExists(email.trim());
+      if (!userExists) {
+        toast({
+          title: "User Tidak Ditemukan",
+          description: `Email ${email.trim()} belum terdaftar di sistem. User harus mendaftar terlebih dahulu melalui halaman registrasi.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke('assign-role', {
         body: {
           email: email.trim(),
@@ -80,18 +127,57 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
 
       if (error) {
         console.error('Function error:', error);
+        
+        // Handle specific error cases
+        if (error.message?.includes('AuthSessionMissingError') || error.message?.includes('Invalid authentication')) {
+          toast({
+            title: "Session Error",
+            description: "Sesi Anda telah berakhir. Silakan logout dan login kembali untuk melanjutkan.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (error.message?.includes('Access denied')) {
+          toast({
+            title: "Akses Ditolak",
+            description: "Anda tidak memiliki permission untuk melakukan assign role.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw error;
       }
 
       console.log('Function response:', data);
 
       if (data?.error) {
+        // Handle specific API errors
+        if (data.error.includes('User not found')) {
+          toast({
+            title: "User Tidak Ditemukan",
+            description: `Email ${email.trim()} belum terdaftar di sistem. User harus mendaftar terlebih dahulu.`,
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (data.error.includes('Access denied')) {
+          toast({
+            title: "Akses Ditolak", 
+            description: "Anda tidak memiliki permission untuk melakukan assign role.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         throw new Error(data.error);
       }
 
       toast({
         title: "Berhasil",
-        description: `Role ${selectedRole} berhasil ditetapkan untuk ${email}. User harus login ulang agar role aktif.`,
+        description: `Role ${selectedRole} berhasil ditetapkan untuk ${email.trim()}. User harus logout dan login kembali agar role aktif.`,
       });
 
       // Reset form
@@ -103,9 +189,21 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
       onRoleAssigned?.();
     } catch (error: any) {
       console.error('Error assigning role:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Gagal menetapkan role';
+      
+      if (error.message?.includes('fetch')) {
+        errorMessage = 'Koneksi bermasalah. Coba lagi dalam beberapa saat.';
+      } else if (error.message?.includes('timeout')) {
+        errorMessage = 'Request timeout. Coba lagi dalam beberapa saat.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error.message || 'Gagal menetapkan role',
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

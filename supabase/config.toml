@@ -69,6 +69,9 @@ verify_jwt = true
 [functions.sync-roles]
 verify_jwt = true
 
+[functions.check-user-exists]
+verify_jwt = true
+
 [edge-runtime]
 enabled = true
 port = 54330

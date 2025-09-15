@@ -75,29 +75,65 @@ serve(async (req) => {
     const { email, role, franchise_id } = await req.json();
     
     if (!email || !role) {
-      return new Response(JSON.stringify({ error: 'Email and role are required' }), {
+      console.error('Missing required fields:', { email: !!email, role: !!role });
+      return new Response(JSON.stringify({ 
+        error: 'Email and role are required',
+        details: 'Both email and role must be provided'
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log('Assigning role:', { email, role, franchise_id });
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      console.error('Invalid email format:', email);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid email format',
+        details: 'Please provide a valid email address'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate role
+    const validRoles = ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing', 'user'];
+    if (!validRoles.includes(role)) {
+      console.error('Invalid role:', role);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid role',
+        details: `Role must be one of: ${validRoles.join(', ')}`
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Assigning role:', { email: email.trim(), role, franchise_id });
 
     // Find target user by email using service role
     const { data: userData, error: findUserError } = await supabaseServiceRole.auth.admin.listUsers();
     
     if (findUserError) {
       console.error('Error listing users:', findUserError);
-      return new Response(JSON.stringify({ error: 'Failed to find user' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Failed to find user',
+        details: 'Unable to access user database. Please try again.'
+      }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const targetUser = userData.users.find(u => u.email === email);
+    const targetUser = userData.users.find(u => u.email?.toLowerCase() === email.trim().toLowerCase());
     if (!targetUser) {
       console.error('Target user not found:', email);
-      return new Response(JSON.stringify({ error: 'User not found' }), {
+      return new Response(JSON.stringify({ 
+        error: `User dengan email ${email.trim()} tidak ditemukan. User harus mendaftar terlebih dahulu melalui halaman registrasi.`,
+        details: 'The email address is not registered in the system'
+      }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
