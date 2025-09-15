@@ -14,16 +14,322 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      admin_income: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          created_by: string
+          franchise_id: string
+          id: string
+          nominal: number
+          tanggal: string | null
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          created_by: string
+          franchise_id: string
+          id?: string
+          nominal: number
+          tanggal?: string | null
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          created_by?: string
+          franchise_id?: string
+          id?: string
+          nominal?: number
+          tanggal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_income_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          franchise_id: string
+          id: string
+          keterangan: string | null
+          nominal: number
+          tanggal: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          franchise_id: string
+          id?: string
+          keterangan?: string | null
+          nominal: number
+          tanggal?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          franchise_id?: string
+          id?: string
+          keterangan?: string | null
+          nominal?: number
+          tanggal?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      franchises: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          franchise_id: string | null
+          id: string
+          name: string
+          slug: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          franchise_id?: string | null
+          id?: string
+          name: string
+          slug: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          franchise_id?: string | null
+          id?: string
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      salary_withdrawals: {
+        Row: {
+          amount: number
+          created_at: string | null
+          created_by: string
+          franchise_id: string
+          id: string
+          tanggal: string | null
+          worker_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          created_by: string
+          franchise_id: string
+          id?: string
+          tanggal?: string | null
+          worker_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          created_by?: string
+          franchise_id?: string
+          id?: string
+          tanggal?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_withdrawals_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_withdrawals_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          franchise_id: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          franchise_id?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          franchise_id?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      worker_income: {
+        Row: {
+          code: string | null
+          created_at: string | null
+          created_by: string
+          fee: number
+          franchise_id: string
+          id: string
+          jobdesk: string | null
+          tanggal: string | null
+          worker_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string | null
+          created_by: string
+          fee: number
+          franchise_id: string
+          id?: string
+          jobdesk?: string | null
+          tanggal?: string | null
+          worker_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string | null
+          created_by?: string
+          fee?: number
+          franchise_id?: string
+          id?: string
+          jobdesk?: string | null
+          tanggal?: string | null
+          worker_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "worker_income_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "worker_income_worker_id_fkey"
+            columns: ["worker_id"]
+            isOneToOne: false
+            referencedRelation: "workers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workers: {
+        Row: {
+          created_at: string | null
+          franchise_id: string
+          id: string
+          nama: string
+          rekening: string | null
+          role: string | null
+          status: string | null
+          wa: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          franchise_id: string
+          id?: string
+          nama: string
+          rekening?: string | null
+          role?: string | null
+          status?: string | null
+          wa?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          franchise_id?: string
+          id?: string
+          nama?: string
+          rekening?: string | null
+          role?: string | null
+          status?: string | null
+          wa?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workers_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      worker_income_public: {
+        Row: {
+          code: string | null
+          fee: number | null
+          franchise_name: string | null
+          franchise_slug: string | null
+          id: string | null
+          jobdesk: string | null
+          tanggal: string | null
+          worker_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      generate_franchise_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_user_franchise_id: {
+        Args: { target_user_id?: string }
+        Returns: string
+      }
+      get_user_role: {
+        Args: { target_user_id?: string }
+        Returns: {
+          franchise_id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
+      }
+      is_super_admin: {
+        Args: { target_user_id?: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "super_admin"
+        | "franchise"
+        | "admin_keuangan"
+        | "admin_marketing"
+        | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +456,14 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "super_admin",
+        "franchise",
+        "admin_keuangan",
+        "admin_marketing",
+        "user",
+      ],
+    },
   },
 } as const
