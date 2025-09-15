@@ -47,13 +47,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setRoleLoading(true);
     try {
-      console.log('Fetching user role for:', user.email);
+      console.log('Ensuring user role for:', user.email);
       
+      // Use ensure_default_user_role to automatically assign default role if none exists
       const { data, error } = await supabase
-        .rpc('get_user_role_rpc', { target_user_id: user.id });
+        .rpc('ensure_default_user_role', { target_user_id: user.id });
 
       if (error) {
-        console.error('Error fetching user role:', error);
+        console.error('Error ensuring user role:', error);
         setUserRole(null);
         return;
       }
@@ -66,11 +67,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           franchise_id: (data as any).franchise_id
         });
       } else {
-        console.log('No role found for user');
+        console.log('No role could be assigned to user');
         setUserRole(null);
       }
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Error ensuring user role:', error);
       setUserRole(null);
     } finally {
       setRoleLoading(false);
