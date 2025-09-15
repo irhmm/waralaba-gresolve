@@ -112,7 +112,12 @@
 
 @layer components {
   .card-hover {
-    @apply transition-all duration-200 ease-out hover:-translate-y-1 hover:shadow-hover;
+    @apply transition-all duration-200 ease-out hover:-translate-y-1;
+    box-shadow: 0 1px 3px 0 hsl(var(--card-shadow)), 0 1px 2px -1px hsl(var(--card-shadow));
+  }
+  
+  .card-hover:hover {
+    box-shadow: 0 10px 15px -3px hsl(var(--card-shadow)), 0 4px 6px -4px hsl(var(--card-shadow));
   }
 
   .btn-primary {
