@@ -171,6 +171,60 @@ ALTER TABLE public.role_changes ENABLE ROW LEVEL SECURITY;
    SELECT * FROM user_roles WHERE user_id = '[user_id]';
    ```
 3. Pastikan `AuthContext.fetchUserRole()` dipanggil ulang setelah login
+4. Coba klik tombol "Coba Ambil Ulang Role" di halaman "Akun Belum Disetup"
+
+### Verifikasi Database Role Assignment
+
+**Cek apakah user sudah ada di database:**
+```sql
+SELECT id, email, created_at FROM auth.users WHERE email = 'user@example.com';
+```
+
+**Cek apakah role sudah di-assign:**
+```sql
+SELECT ur.role, ur.franchise_id, ur.created_at
+FROM user_roles ur
+JOIN auth.users u ON ur.user_id = u.id
+WHERE u.email = 'user@example.com';
+```
+
+**Cek semua user dan role mereka:**
+```sql
+SELECT 
+  u.email,
+  ur.role,
+  ur.franchise_id,
+  ur.created_at as role_assigned_at
+FROM auth.users u
+LEFT JOIN user_roles ur ON u.id = ur.user_id  
+ORDER BY u.created_at DESC;
+```
+
+### Manual Role Assignment untuk Super Admin Pertama
+
+**Jika user ada tapi role belum ada, assign role:**
+```sql
+INSERT INTO user_roles (user_id, role) 
+VALUES (
+  (SELECT id FROM auth.users WHERE email = 'user@example.com'),
+  'super_admin'
+);
+```
+
+**Atau gunakan UPSERT untuk update jika sudah ada:**
+```sql
+INSERT INTO user_roles (user_id, role) 
+VALUES (
+  (SELECT id FROM auth.users WHERE email = 'your-admin@example.com'),
+  'super_admin'
+)
+ON CONFLICT (user_id) DO UPDATE SET role = 'super_admin';
+```
+
+**Test RPC function directly:**
+```sql
+SELECT * FROM get_user_role_rpc((SELECT id FROM auth.users WHERE email = 'user@example.com'));
+```
 
 ### Issue: Edge Function timeout atau error 500
 

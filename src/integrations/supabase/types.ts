@@ -348,6 +348,10 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      get_user_role_rpc: {
+        Args: { target_user_id?: string }
+        Returns: Json
+      }
       get_worker_income_public: {
         Args: { franchise_slug_param?: string }
         Returns: {
