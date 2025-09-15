@@ -10,6 +10,10 @@ import Dashboard from "./pages/Dashboard";
 import FranchisesPage from "./pages/FranchisesPage";
 import ListFranchisePage from "./pages/admin/ListFranchisePage";
 import AddFranchisePage from "./pages/admin/AddFranchisePage";
+import AdminIncomePage from "./pages/AdminIncomePage";
+import WorkerIncomePage from "./pages/WorkerIncomePage";
+import ExpensesPage from "./pages/ExpensesPage";
+import WorkersPage from "./pages/WorkersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +32,10 @@ const App = () => (
               <Route path="franchises" element={<FranchisesPage />} />
               <Route path="admin/franchises" element={<ListFranchisePage />} />
               <Route path="admin/franchises/new" element={<AddFranchisePage />} />
+              <Route path="admin-income" element={<AdminIncomePage />} />
+              <Route path="worker-income" element={<WorkerIncomePage />} />
+              <Route path="expenses" element={<ExpensesPage />} />
+              <Route path="workers" element={<WorkersPage />} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
