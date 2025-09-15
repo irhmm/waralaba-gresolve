@@ -333,6 +333,10 @@ export type Database = {
       }
     }
     Functions: {
+      ensure_default_user_role: {
+        Args: { target_user_id?: string }
+        Returns: Json
+      }
       generate_franchise_id: {
         Args: Record<PropertyKey, never>
         Returns: string
