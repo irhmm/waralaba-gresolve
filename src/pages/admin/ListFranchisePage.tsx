@@ -29,6 +29,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { AssignRoleModal } from '@/components/admin/AssignRoleModal';
+import { SyncRolesButton } from '@/components/admin/SyncRolesButton';
 
 interface Franchise {
   id: string;
@@ -290,6 +292,10 @@ const ListFranchisePage = () => {
         </div>
         
         <div className="flex gap-2">
+          <SyncRolesButton onSyncCompleted={fetchFranchisesWithMetrics} />
+          
+          <AssignRoleModal onRoleAssigned={fetchFranchisesWithMetrics} />
+          
           <Button
             variant="outline"
             onClick={exportToCSV}
