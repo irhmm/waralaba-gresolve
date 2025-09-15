@@ -318,6 +318,19 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      get_worker_income_public: {
+        Args: { franchise_slug_param?: string }
+        Returns: {
+          code: string
+          fee: number
+          franchise_name: string
+          franchise_slug: string
+          id: string
+          jobdesk: string
+          tanggal: string
+          worker_name: string
+        }[]
+      }
       is_super_admin: {
         Args: { target_user_id?: string }
         Returns: boolean
