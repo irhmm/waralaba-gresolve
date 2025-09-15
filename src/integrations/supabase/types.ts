@@ -117,6 +117,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_changes: {
+        Row: {
+          actor_id: string
+          created_at: string | null
+          franchise_id: string | null
+          id: string
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_role: Database["public"]["Enums"]["app_role"] | null
+          target_user_id: string
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string | null
+          franchise_id?: string | null
+          id?: string
+          new_role: Database["public"]["Enums"]["app_role"]
+          old_role?: Database["public"]["Enums"]["app_role"] | null
+          target_user_id: string
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string | null
+          franchise_id?: string | null
+          id?: string
+          new_role?: Database["public"]["Enums"]["app_role"]
+          old_role?: Database["public"]["Enums"]["app_role"] | null
+          target_user_id?: string
+        }
+        Relationships: []
+      }
       salary_withdrawals: {
         Row: {
           amount: number
