@@ -46,9 +46,14 @@ const menuItems = {
       icon: Plus,
     },
     {
-      title: 'Bagi Hasil Franchise',
+      title: 'Pengaturan Bagi Hasil',
       url: '/admin/profit-sharing',
       icon: Percent,
+    },
+    {
+      title: 'Data Bagi Hasil Franchise',
+      url: '/admin/franchise-profit-sharing',
+      icon: TrendingUp,
     },
     {
       title: 'User Management',
