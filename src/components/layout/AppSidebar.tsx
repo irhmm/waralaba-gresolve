@@ -46,11 +46,6 @@ const menuItems = {
       icon: Plus,
     },
     {
-      title: 'Pengaturan Bagi Hasil',
-      url: '/admin/profit-sharing-settings',
-      icon: Settings,
-    },
-    {
       title: 'Pengaturan Profit',
       url: '/admin/profit-sharing',
       icon: Percent,
