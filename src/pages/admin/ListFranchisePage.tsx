@@ -8,6 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -27,7 +30,11 @@ import {
   Settings,
   Eye,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  Save
 } from 'lucide-react';
 import { AssignRoleModal } from '@/components/admin/AssignRoleModal';
 import { SyncRolesButton } from '@/components/admin/SyncRolesButton';
@@ -75,6 +82,28 @@ const ListFranchisePage = () => {
   const [userEmail, setUserEmail] = useState('');
   const [selectedRole, setSelectedRole] = useState<'franchise' | 'admin_keuangan' | 'admin_marketing'>('franchise');
   const [assignLoading, setAssignLoading] = useState(false);
+
+  // Edit Modal
+  const [editModal, setEditModal] = useState<{
+    isOpen: boolean;
+    franchise: Franchise | null;
+  }>({ isOpen: false, franchise: null });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    slug: '',
+    address: '',
+    franchise_id: ''
+  });
+  const [editLoading, setEditLoading] = useState(false);
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+
+  // Delete Modal
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    franchise: Franchise | null;
+  }>({ isOpen: false, franchise: null });
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Only super_admin can access this page
   if (userRole?.role !== 'super_admin') {
@@ -200,6 +229,206 @@ const ListFranchisePage = () => {
       });
     } finally {
       setAssignLoading(false);
+    }
+  };
+
+  // Edit functions
+  const generateSlug = (name: string) => {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9 -]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  };
+
+  const handleEditFranchise = (franchise: Franchise) => {
+    setEditFormData({
+      name: franchise.name,
+      slug: franchise.slug,
+      address: franchise.address || '',
+      franchise_id: franchise.franchise_id || ''
+    });
+    setEditModal({ isOpen: true, franchise });
+    setEditErrors({});
+  };
+
+  const handleEditNameChange = (name: string) => {
+    setEditFormData(prev => ({
+      ...prev,
+      name,
+      slug: generateSlug(name)
+    }));
+    
+    if (editErrors.name) {
+      setEditErrors(prev => ({ ...prev, name: '' }));
+    }
+  };
+
+  const validateEditForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!editFormData.name.trim()) {
+      newErrors.name = 'Nama franchise harus diisi';
+    }
+
+    if (!editFormData.slug.trim()) {
+      newErrors.slug = 'Slug harus diisi';
+    } else if (!/^[a-z0-9-]+$/.test(editFormData.slug)) {
+      newErrors.slug = 'Slug hanya boleh mengandung huruf kecil, angka, dan tanda hubung';
+    }
+
+    setEditErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleEditSubmit = async () => {
+    if (!editModal.franchise || !validateEditForm()) return;
+
+    setEditLoading(true);
+    try {
+      // Check if slug already exists (excluding current franchise)
+      const { data: existingSlug } = await supabase
+        .from('franchises')
+        .select('id')
+        .eq('slug', editFormData.slug.trim())
+        .neq('id', editModal.franchise.id)
+        .single();
+
+      if (existingSlug) {
+        setEditErrors({ slug: 'Slug sudah digunakan oleh franchise lain' });
+        setEditLoading(false);
+        return;
+      }
+
+      const updateData: any = {
+        name: editFormData.name.trim(),
+        slug: editFormData.slug.trim(),
+        address: editFormData.address.trim() || null
+      };
+
+      if (editFormData.franchise_id.trim()) {
+        updateData.franchise_id = editFormData.franchise_id.trim();
+      }
+
+      const { error } = await supabase
+        .from('franchises')
+        .update(updateData)
+        .eq('id', editModal.franchise.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Franchise "${editFormData.name}" berhasil diupdate`,
+      });
+
+      setEditModal({ isOpen: false, franchise: null });
+      fetchFranchisesWithMetrics();
+
+    } catch (error: any) {
+      console.error('Error updating franchise:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal mengupdate franchise",
+        variant: "destructive",
+      });
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  // Delete functions
+  const handleDeleteFranchise = (franchise: Franchise) => {
+    setDeleteModal({ isOpen: true, franchise });
+    setDeleteConfirmName('');
+  };
+
+  const handleDeleteSubmit = async () => {
+    if (!deleteModal.franchise || deleteConfirmName !== deleteModal.franchise.name) {
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      // Start transaction-like cascade delete
+      const franchiseId = deleteModal.franchise.id;
+
+      // Delete in correct order to avoid constraint errors
+      
+      // 1. Delete worker income records
+      const { error: workerIncomeError } = await supabase
+        .from('worker_income')
+        .delete()
+        .eq('franchise_id', franchiseId);
+      
+      if (workerIncomeError) throw workerIncomeError;
+
+      // 2. Delete salary withdrawals
+      const { error: salaryError } = await supabase
+        .from('salary_withdrawals')
+        .delete()
+        .eq('franchise_id', franchiseId);
+      
+      if (salaryError) throw salaryError;
+
+      // 3. Delete workers
+      const { error: workersError } = await supabase
+        .from('workers')
+        .delete()
+        .eq('franchise_id', franchiseId);
+      
+      if (workersError) throw workersError;
+
+      // 4. Delete admin income
+      const { error: adminIncomeError } = await supabase
+        .from('admin_income')
+        .delete()
+        .eq('franchise_id', franchiseId);
+      
+      if (adminIncomeError) throw adminIncomeError;
+
+      // 5. Delete expenses
+      const { error: expensesError } = await supabase
+        .from('expenses')
+        .delete()
+        .eq('franchise_id', franchiseId);
+      
+      if (expensesError) throw expensesError;
+
+      // 6. Delete user roles associated with this franchise
+      const { error: userRolesError } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('franchise_id', franchiseId);
+      
+      if (userRolesError) throw userRolesError;
+
+      // 7. Finally delete the franchise
+      const { error: franchiseError } = await supabase
+        .from('franchises')
+        .delete()
+        .eq('id', franchiseId);
+      
+      if (franchiseError) throw franchiseError;
+
+      toast({
+        title: "Success",
+        description: `Franchise "${deleteModal.franchise.name}" dan semua data terkait berhasil dihapus`,
+      });
+
+      setDeleteModal({ isOpen: false, franchise: null });
+      fetchFranchisesWithMetrics();
+
+    } catch (error: any) {
+      console.error('Error deleting franchise:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Gagal menghapus franchise",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -475,6 +704,23 @@ const ListFranchisePage = () => {
                   >
                     <Eye className="w-4 h-4" />
                   </Button>
+                  
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditFranchise(franchise)}
+                  >
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeleteFranchise(franchise)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -555,8 +801,20 @@ const ListFranchisePage = () => {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button size="sm" variant="ghost">
-                          <Settings className="w-4 h-4" />
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => handleEditFranchise(franchise)}
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => handleDeleteFranchise(franchise)}
+                          className="text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -709,6 +967,155 @@ const ListFranchisePage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Franchise Modal */}
+      <Dialog 
+        open={editModal.isOpen} 
+        onOpenChange={(open) => setEditModal({ isOpen: open, franchise: null })}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Franchise</DialogTitle>
+            <DialogDescription>
+              Update franchise information for: <strong>{editModal.franchise?.name}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="editName">Franchise Name</Label>
+              <Input
+                id="editName"
+                value={editFormData.name}
+                onChange={(e) => handleEditNameChange(e.target.value)}
+                className={`input-field ${editErrors.name ? 'border-destructive' : ''}`}
+                placeholder="Franchise name"
+              />
+              {editErrors.name && (
+                <p className="text-sm text-destructive">{editErrors.name}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editSlug">Slug (URL)</Label>
+              <Input
+                id="editSlug"
+                value={editFormData.slug}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, slug: generateSlug(e.target.value) }))}
+                className={`input-field ${editErrors.slug ? 'border-destructive' : ''}`}
+                placeholder="franchise-slug"
+              />
+              {editErrors.slug && (
+                <p className="text-sm text-destructive">{editErrors.slug}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editFranchiseId">Franchise ID</Label>
+              <Input
+                id="editFranchiseId"
+                value={editFormData.franchise_id}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, franchise_id: e.target.value }))}
+                className="input-field"
+                placeholder="FR-001"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="editAddress">Address</Label>
+              <Textarea
+                id="editAddress"
+                value={editFormData.address}
+                onChange={(e) => setEditFormData(prev => ({ ...prev, address: e.target.value }))}
+                className="input-field"
+                placeholder="Franchise address"
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setEditModal({ isOpen: false, franchise: null })}
+              disabled={editLoading}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleEditSubmit} 
+              className="btn-primary"
+              disabled={!editFormData.name.trim() || !editFormData.slug.trim() || editLoading}
+            >
+              {editLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
+              <Save className="w-4 h-4 mr-2" />
+              Update Franchise
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <AlertDialog 
+        open={deleteModal.isOpen} 
+        onOpenChange={(open) => setDeleteModal({ isOpen: open, franchise: null })}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Delete Franchise
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>
+                This will permanently delete franchise <strong>{deleteModal.franchise?.name}</strong> and 
+                <strong className="text-destructive"> ALL associated data</strong> including:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>All worker records and income data</li>
+                <li>All admin income records</li>
+                <li>All expense records</li>
+                <li>All salary withdrawal records</li>
+                <li>All user role assignments</li>
+              </ul>
+              <p className="font-medium">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="confirmName">
+                Type <strong>{deleteModal.franchise?.name}</strong> to confirm:
+              </Label>
+              <Input
+                id="confirmName"
+                value={deleteConfirmName}
+                onChange={(e) => setDeleteConfirmName(e.target.value)}
+                placeholder={deleteModal.franchise?.name || ''}
+                className="input-field"
+              />
+            </div>
+          </div>
+          
+          <AlertDialogFooter>
+            <AlertDialogCancel 
+              onClick={() => setDeleteModal({ isOpen: false, franchise: null })}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSubmit}
+              disabled={deleteConfirmName !== deleteModal.franchise?.name || deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />}
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
