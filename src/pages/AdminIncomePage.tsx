@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download } from 'lucide-react';
 import { format } from 'date-fns';
+import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
+import { exportAdminIncomeToExcel } from '@/utils/excelUtils';
 
 interface AdminIncome {
   id: string;
@@ -20,10 +23,18 @@ interface AdminIncome {
   created_by: string;
 }
 
+interface Franchise {
+  id: string;
+  name: string;
+  franchise_id: string;
+}
+
 export default function AdminIncomePage() {
   const { userRole, user } = useAuth();
   const { toast } = useToast();
   const [adminIncomes, setAdminIncomes] = useState<AdminIncome[]>([]);
+  const [franchises, setFranchises] = useState<Franchise[]>([]);
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<AdminIncome | null>(null);
@@ -32,20 +43,61 @@ export default function AdminIncomePage() {
     nominal: '',
   });
 
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [codeFilter, setCodeFilter] = useState('');
+
   const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing'].includes(userRole.role);
+  const isSuperAdmin = userRole?.role === 'super_admin';
 
   useEffect(() => {
     fetchAdminIncomes();
+    if (isSuperAdmin) {
+      fetchFranchises();
+    }
   }, [userRole]);
+
+  useEffect(() => {
+    if (isSuperAdmin && selectedFranchise) {
+      fetchAdminIncomes();
+    }
+  }, [selectedFranchise]);
+
+  const fetchFranchises = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('franchises')
+        .select('id, name, franchise_id')
+        .order('name');
+
+      if (error) throw error;
+      setFranchises(data || []);
+    } catch (error) {
+      console.error('Error fetching franchises:', error);
+    }
+  };
 
   const fetchAdminIncomes = async () => {
     if (!userRole) return;
 
     try {
-      const { data, error } = await supabase
+      // Determine franchise_id to filter by
+      let franchiseId = userRole.franchise_id;
+      if (isSuperAdmin && selectedFranchise) {
+        franchiseId = selectedFranchise;
+      }
+
+      let query = supabase
         .from('admin_income')
         .select('*')
         .order('tanggal', { ascending: false });
+
+      if (franchiseId) {
+        query = query.eq('franchise_id', franchiseId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setAdminIncomes(data || []);
@@ -63,13 +115,16 @@ export default function AdminIncomePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !userRole?.franchise_id) return;
+    if (!user) return;
+
+    const franchiseId = isSuperAdmin && selectedFranchise ? selectedFranchise : userRole?.franchise_id;
+    if (!franchiseId) return;
 
     try {
       const payload = {
         code: formData.code,
         nominal: parseFloat(formData.nominal),
-        franchise_id: userRole.franchise_id,
+        franchise_id: franchiseId,
         created_by: user.id,
       };
 
@@ -133,12 +188,107 @@ export default function AdminIncomePage() {
     }
   };
 
+  // Filtered and grouped data
+  const filteredData = useMemo(() => {
+    let filtered = adminIncomes;
+
+    // Global search
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.code.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Month filter
+    if (selectedMonth) {
+      filtered = filtered.filter(item => {
+        const itemMonth = format(new Date(item.tanggal), 'yyyy-MM');
+        return itemMonth === selectedMonth;
+      });
+    }
+
+    // Code filter
+    if (codeFilter) {
+      filtered = filtered.filter(item =>
+        item.code.toLowerCase().includes(codeFilter.toLowerCase())
+      );
+    }
+
+    return filtered;
+  }, [adminIncomes, searchTerm, selectedMonth, codeFilter]);
+
+  const groupedData = useMemo(() => {
+    const grouped = groupDataByMonth(filteredData);
+    return calculateMonthlyTotals(grouped, 'nominal');
+  }, [filteredData]);
+
+  const availableMonths = useMemo(() => getAvailableMonths(adminIncomes), [adminIncomes]);
+
+  const availableCodes = useMemo(() => {
+    const codes = adminIncomes.map(item => item.code);
+    return [...new Set(codes)].sort();
+  }, [adminIncomes]);
+
+  const handleExport = () => {
+    exportAdminIncomeToExcel(filteredData);
+    toast({ title: "Success", description: "Data exported to Excel successfully!" });
+  };
+
   if (loading) {
     return <div className="flex justify-center items-center h-64">Loading...</div>;
   }
 
   return (
     <div className="space-y-6">
+      {/* Super Admin Franchise Selector */}
+      {isSuperAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pilih Franchise</CardTitle>
+            <CardDescription>Pilih franchise untuk melihat data pendapatan admin</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih franchise" />
+              </SelectTrigger>
+              <SelectContent>
+                {franchises.map((franchise) => (
+                  <SelectItem key={franchise.id} value={franchise.id}>
+                    {franchise.name} ({franchise.franchise_id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Monthly Summary Cards */}
+      {Object.keys(groupedData).length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.entries(groupedData)
+            .sort(([a], [b]) => b.localeCompare(a))
+            .slice(0, 6)
+            .map(([month, data]) => (
+            <Card key={month} className="bg-gradient-to-r from-blue-50 to-white border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600">{data.label}</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      Rp {data.total.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-xs text-blue-500">{data.items.length} transaksi</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Filters and Actions */}
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
@@ -148,17 +298,22 @@ export default function AdminIncomePage() {
                 Kelola data pendapatan admin franchise
               </CardDescription>
             </div>
-            {canWrite && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => {
-                    setEditingItem(null);
-                    setFormData({ code: '', nominal: '' });
-                  }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Tambah Pendapatan
-                  </Button>
-                </DialogTrigger>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
+              {canWrite && (
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setEditingItem(null);
+                      setFormData({ code: '', nominal: '' });
+                    }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Pendapatan
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
@@ -192,9 +347,59 @@ export default function AdminIncomePage() {
                 </DialogContent>
               </Dialog>
             )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
+          {/* Filters */}
+          <div className="flex flex-col md:flex-row gap-4 mb-6">
+            <div className="flex-1">
+              <Label htmlFor="search">Cari (Kode)</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  id="search"
+                  placeholder="Cari berdasarkan kode..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="w-full md:w-48">
+              <Label htmlFor="month-filter">Filter Bulan</Label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua bulan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Semua bulan</SelectItem>
+                  {availableMonths.map((month) => (
+                    <SelectItem key={month.value} value={month.value}>
+                      {month.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-full md:w-48">
+              <Label htmlFor="code-filter">Filter Kode</Label>
+              <Select value={codeFilter} onValueChange={setCodeFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Semua kode" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Semua kode</SelectItem>
+                  {availableCodes.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -205,8 +410,8 @@ export default function AdminIncomePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {adminIncomes.map((item) => (
-                <TableRow key={item.id}>
+              {filteredData.map((item) => (
+                <TableRow key={item.id} className="hover:bg-blue-50/50">
                   <TableCell>{item.code}</TableCell>
                   <TableCell>Rp {item.nominal.toLocaleString('id-ID')}</TableCell>
                   <TableCell>{format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')}</TableCell>
@@ -228,10 +433,13 @@ export default function AdminIncomePage() {
                   )}
                 </TableRow>
               ))}
-              {adminIncomes.length === 0 && (
+              {filteredData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 4 : 3} className="text-center text-muted-foreground">
-                    Belum ada data pendapatan admin
+                    {searchTerm || selectedMonth || codeFilter 
+                      ? 'Tidak ada data yang sesuai dengan filter' 
+                      : 'Belum ada data pendapatan admin'
+                    }
                   </TableCell>
                 </TableRow>
               )}
