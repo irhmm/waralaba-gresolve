@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -34,7 +35,9 @@ import {
   Edit,
   Trash2,
   AlertTriangle,
-  Save
+  Save,
+  Filter,
+  X
 } from 'lucide-react';
 import { AssignRoleModal } from '@/components/admin/AssignRoleModal';
 import { SyncRolesButton } from '@/components/admin/SyncRolesButton';
@@ -69,6 +72,11 @@ const ListFranchisePage = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [sortField, setSortField] = useState<keyof Franchise>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [revenueFilter, setRevenueFilter] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false);
   
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -465,11 +473,22 @@ const ListFranchisePage = () => {
   };
 
   const filteredFranchises = franchises
-    .filter(franchise =>
-      franchise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      franchise.franchise_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      franchise.slug.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    .filter(franchise => {
+      const matchesSearch = franchise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        franchise.franchise_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        franchise.slug.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === 'all' || 
+        (statusFilter === 'active' && (franchise.worker_count || 0) > 0) ||
+        (statusFilter === 'inactive' && (franchise.worker_count || 0) === 0);
+
+      const matchesRevenue = revenueFilter === 'all' ||
+        (revenueFilter === 'positive' && (franchise.revenue || 0) > 0) ||
+        (revenueFilter === 'negative' && (franchise.revenue || 0) < 0) ||
+        (revenueFilter === 'zero' && (franchise.revenue || 0) === 0);
+
+      return matchesSearch && matchesStatus && matchesRevenue;
+    })
     .sort((a, b) => {
       const aVal = a[sortField] || 0;
       const bVal = b[sortField] || 0;
@@ -484,6 +503,12 @@ const ListFranchisePage = () => {
         ? Number(aVal) - Number(bVal)
         : Number(bVal) - Number(aVal);
     });
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setRevenueFilter('all');
+  };
 
   // Pagination
   const totalPages = Math.ceil(filteredFranchises.length / itemsPerPage);
@@ -521,6 +546,75 @@ const ListFranchisePage = () => {
         </div>
         
         <div className="flex gap-2">
+          <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="h-4 w-4 text-blue-500 mr-2" />
+                Filter
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 bg-white border rounded-lg shadow-lg">
+              <div className="space-y-4 p-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Filter Data</h4>
+                  <Button variant="ghost" size="sm" onClick={() => setFilterOpen(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Status Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="status">Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Status</SelectItem>
+                      <SelectItem value="active">Active (Has Workers)</SelectItem>
+                      <SelectItem value="inactive">Inactive (No Workers)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Revenue Filter */}
+                <div className="space-y-2">
+                  <Label htmlFor="revenue">Revenue</Label>
+                  <Select value={revenueFilter} onValueChange={setRevenueFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Semua Revenue" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Semua Revenue</SelectItem>
+                      <SelectItem value="positive">Positive</SelectItem>
+                      <SelectItem value="negative">Negative</SelectItem>
+                      <SelectItem value="zero">Zero</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Filter Actions */}
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={resetFilters}
+                    className="flex-1"
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setFilterOpen(false)}
+                    className="flex-1"
+                  >
+                    Terapkan Filter
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
           <SyncRolesButton onSyncCompleted={fetchFranchisesWithMetrics} />
           
           <AssignRoleModal onRoleAssigned={fetchFranchisesWithMetrics} />

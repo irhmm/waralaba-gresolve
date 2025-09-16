@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,9 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { Plus, Edit, Trash2, Filter, Download, Search, X } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 interface Worker {
   id: string;
@@ -37,6 +39,12 @@ export default function WorkersPage() {
     role: '',
     status: 'active',
   });
+
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [filterOpen, setFilterOpen] = useState(false);
 
   // Access control based on user role
   const canAccess = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing'].includes(userRole.role);
@@ -148,6 +156,71 @@ export default function WorkersPage() {
     }
   };
 
+  // Filtered data
+  const filteredData = useMemo(() => {
+    let filtered = workers;
+
+    // Global search (nama, rekening, wa, role)
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.rekening && item.rekening.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.wa && item.wa.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (item.role && item.role.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Status filter
+    if (statusFilter && statusFilter !== 'all') {
+      filtered = filtered.filter(item => item.status === statusFilter);
+    }
+
+    // Role filter
+    if (roleFilter && roleFilter !== 'all') {
+      filtered = filtered.filter(item => item.role === roleFilter);
+    }
+
+    return filtered;
+  }, [workers, searchTerm, statusFilter, roleFilter]);
+
+  // Get available statuses and roles for filter dropdowns
+  const availableStatuses = useMemo(() => {
+    const statuses = [...new Set(workers.map(w => w.status))].filter(Boolean);
+    return statuses;
+  }, [workers]);
+
+  const availableRoles = useMemo(() => {
+    const roles = [...new Set(workers.map(w => w.role))].filter(Boolean);
+    return roles;
+  }, [workers]);
+
+  const handleExport = () => {
+    const exportData = filteredData.map(item => ({
+      'Nama': item.nama,
+      'Rekening': item.rekening || '-',
+      'WhatsApp': item.wa || '-',
+      'Role': item.role || '-',
+      'Status': item.status,
+      'Created At': new Date(item.created_at).toLocaleDateString('id-ID')
+    }));
+
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Workers Data');
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `workers_data_${timestamp}.xlsx`;
+    XLSX.writeFile(workbook, filename);
+    
+    toast({ title: "Success", description: "Data exported to Excel successfully!" });
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setRoleFilter('all');
+  };
+
   if (!canAccess) {
     return (
       <Card>
@@ -176,17 +249,112 @@ export default function WorkersPage() {
                 Kelola data worker franchise
               </CardDescription>
             </div>
-            {canWrite && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => {
-                    setEditingItem(null);
-                    setFormData({ nama: '', rekening: '', wa: '', role: '', status: 'active' });
-                  }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Tambah Worker
+            <div className="flex items-center gap-2">
+              {/* Filter Popover */}
+              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4 text-blue-500" />
                   </Button>
-                </DialogTrigger>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 bg-white border rounded-lg shadow-lg">
+                  <div className="space-y-4 p-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Filter Data</h4>
+                      <Button variant="ghost" size="sm" onClick={() => setFilterOpen(false)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {/* Global Search */}
+                    <div className="space-y-2">
+                      <Label htmlFor="search">Pencarian Global</Label>
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="search"
+                          placeholder="Cari nama, rekening, WA, role..."
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          className="pl-8"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Semua Status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Semua Status</SelectItem>
+                          {availableStatuses.map(status => (
+                            <SelectItem key={status} value={status}>
+                              {status.charAt(0).toUpperCase() + status.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Role Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Role</Label>
+                      <Select value={roleFilter} onValueChange={setRoleFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Semua Role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Semua Role</SelectItem>
+                          {availableRoles.map(role => (
+                            <SelectItem key={role} value={role}>
+                              {role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Filter Actions */}
+                    <div className="flex gap-2 pt-4 border-t">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetFilters}
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setFilterOpen(false)}
+                        className="flex-1"
+                      >
+                        Terapkan Filter
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
+
+              {canWrite && (
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setEditingItem(null);
+                      setFormData({ nama: '', rekening: '', wa: '', role: '', status: 'active' });
+                    }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Worker
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
@@ -249,6 +417,7 @@ export default function WorkersPage() {
                 </DialogContent>
               </Dialog>
             )}
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -264,8 +433,8 @@ export default function WorkersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {workers.map((item) => (
-                <TableRow key={item.id}>
+              {filteredData.map((item) => (
+                <TableRow key={item.id} className="hover:bg-blue-50/50">
                   <TableCell className="font-medium">{item.nama}</TableCell>
                   <TableCell>{item.rekening || '-'}</TableCell>
                   <TableCell>{item.wa || '-'}</TableCell>
@@ -293,10 +462,13 @@ export default function WorkersPage() {
                   )}
                 </TableRow>
               ))}
-              {workers.length === 0 && (
+              {filteredData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 6 : 5} className="text-center text-muted-foreground">
-                    Belum ada data worker
+                    {searchTerm || statusFilter !== 'all' || roleFilter !== 'all'
+                      ? 'Tidak ada data yang sesuai dengan filter' 
+                      : 'Belum ada data worker'
+                    }
                   </TableCell>
                 </TableRow>
               )}
