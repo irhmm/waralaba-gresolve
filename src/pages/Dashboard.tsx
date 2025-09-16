@@ -58,6 +58,12 @@ interface ChartData {
   omset: number;
 }
 
+interface ProfitSharingChartData {
+  month: string;
+  monthLabel: string;
+  [franchiseName: string]: number | string;
+}
+
 const Dashboard = () => {
   const { userRole, user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({});
@@ -68,12 +74,17 @@ const Dashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [profitSharingChartData, setProfitSharingChartData] = useState<ProfitSharingChartData[]>([]);
+  const [franchiseColors, setFranchiseColors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     fetchDashboardStats();
     fetchMonthlySummary();
     if (userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') {
       fetchChartData();
+    }
+    if (userRole?.role === 'super_admin') {
+      fetchProfitSharingChartData();
     }
   }, [userRole]);
 
@@ -411,6 +422,62 @@ const Dashboard = () => {
     }
   };
 
+  const fetchProfitSharingChartData = async () => {
+    try {
+      // Get all franchises
+      const { data: franchises } = await supabase
+        .from('franchises')
+        .select('id, name');
+
+      if (!franchises || franchises.length === 0) {
+        setProfitSharingChartData([]);
+        return;
+      }
+
+      // Generate colors for each franchise
+      const colors = [
+        '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f59e0b',
+        '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
+      ];
+      const colorMap: { [key: string]: string } = {};
+      franchises.forEach((franchise, index) => {
+        colorMap[franchise.name] = colors[index % colors.length];
+      });
+      setFranchiseColors(colorMap);
+
+      // Get profit sharing data for the last 12 months
+      const months: ProfitSharingChartData[] = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const targetDate = subMonths(startOfMonth(new Date()), i);
+        const monthKey = format(targetDate, 'yyyy-MM');
+        
+        const monthData: ProfitSharingChartData = {
+          month: monthKey,
+          monthLabel: format(targetDate, 'MMM yyyy')
+        };
+
+        // Get profit sharing data for each franchise for this month
+        for (const franchise of franchises) {
+          const { data: profitSharingData } = await supabase
+            .from('franchise_profit_sharing')
+            .select('share_nominal')
+            .eq('franchise_id', franchise.id)
+            .eq('month_year', monthKey)
+            .maybeSingle();
+
+          monthData[franchise.name] = profitSharingData?.share_nominal || 0;
+        }
+
+        months.push(monthData);
+      }
+
+      setProfitSharingChartData(months);
+    } catch (error) {
+      console.error('Error fetching profit sharing chart data:', error);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -684,6 +751,61 @@ const Dashboard = () => {
           </>
         )}
       </div>
+
+      {/* Profit Sharing Chart for Super Admin */}
+      {userRole?.role === 'super_admin' && (
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Grafik Bagi Hasil Franchise (Per Bulan)
+            </CardTitle>
+            <CardDescription>
+              Tren bagi hasil dari setiap franchise dalam 12 bulan terakhir
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={profitSharingChartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="monthLabel" 
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                      return value.toString();
+                    }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="line"
+                  />
+                  {Object.keys(franchiseColors).map((franchiseName) => (
+                    <Line
+                      key={franchiseName}
+                      type="monotone"
+                      dataKey={franchiseName}
+                      stroke={franchiseColors[franchiseName]}
+                      strokeWidth={2}
+                      name={franchiseName}
+                      dot={{ fill: franchiseColors[franchiseName], strokeWidth: 2, r: 3 }}
+                      activeDot={{ r: 5, fill: franchiseColors[franchiseName] }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
 
       {/* Financial Chart for Franchise and Admin Keuangan */}
