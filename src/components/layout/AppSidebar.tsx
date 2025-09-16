@@ -19,7 +19,7 @@ import {
   FileText, 
   CreditCard, 
   TrendingUp, 
-  Settings,
+  LogOut,
   BarChart3,
   UserCheck,
   Plus,
@@ -131,7 +131,7 @@ const menuItems = {
 
 export function AppSidebar() {
   const { state } = useSidebar();
-  const { userRole } = useAuth();
+  const { userRole, signOut } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
 
@@ -175,22 +175,23 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {userRole.role !== 'user' && (
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
-                    <NavLink to="/settings" className="sidebar-item">
-                      <Settings className="h-4 w-4" />
-                      <span>Pengaturan</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button 
+                    onClick={signOut}
+                    className="sidebar-item w-full text-left text-destructive hover:text-destructive focus:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Keluar</span>
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
     </Sidebar>
   );
