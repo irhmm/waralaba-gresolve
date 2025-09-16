@@ -4,12 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Download } from "lucide-react";
+import { Search, Filter, Download, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface FranchiseProfitData {
   franchise_id: string;
@@ -23,19 +25,34 @@ interface FranchiseProfitData {
 export default function FranchiseProfitSharingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
+  const [monthSearchOpen, setMonthSearchOpen] = useState(false);
 
-  // Generate month options for the last 12 months
-  const getMonthOptions = () => {
-    const months = [];
-    const currentDate = new Date();
-    for (let i = 0; i < 12; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-      const value = format(date, "yyyy-MM");
-      const label = format(date, "MMMM yyyy");
-      months.push({ value, label });
-    }
-    return months;
-  };
+  // Get available months that have data
+  const { data: availableMonths = [] } = useQuery({
+    queryKey: ["available-months"],
+    queryFn: async () => {
+      const { data: adminIncome, error } = await supabase
+        .from("admin_income")
+        .select("tanggal")
+        .not("tanggal", "is", null)
+        .order("tanggal", { ascending: false });
+
+      if (error) throw error;
+
+      const monthsSet = new Set<string>();
+      adminIncome?.forEach((income) => {
+        if (income.tanggal) {
+          const monthYear = format(new Date(income.tanggal), "yyyy-MM");
+          monthsSet.add(monthYear);
+        }
+      });
+
+      return Array.from(monthsSet).map(monthYear => ({
+        value: monthYear,
+        label: format(new Date(monthYear + "-01"), "MMMM yyyy")
+      })).sort((a, b) => b.value.localeCompare(a.value));
+    },
+  });
 
   const { data: profitSharingData = [], refetch } = useQuery({
     queryKey: ["franchise-profit-sharing", selectedMonth],
@@ -180,18 +197,50 @@ export default function FranchiseProfitSharingPage() {
               
               <div className="flex gap-2 items-center">
                 <Filter className="h-4 w-4 text-primary" />
-                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Pilih bulan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getMonthOptions().map((month) => (
-                      <SelectItem key={month.value} value={month.value}>
-                        {month.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Popover open={monthSearchOpen} onOpenChange={setMonthSearchOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={monthSearchOpen}
+                      className="w-48 justify-between"
+                    >
+                      {selectedMonth
+                        ? availableMonths.find((month) => month.value === selectedMonth)?.label
+                        : "Pilih bulan..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-0 bg-background border shadow-md z-50">
+                    <Command>
+                      <CommandInput placeholder="Cari bulan..." className="h-9" />
+                      <CommandList>
+                        <CommandEmpty>Tidak ada bulan ditemukan.</CommandEmpty>
+                        <CommandGroup>
+                          {availableMonths.map((month) => (
+                            <CommandItem
+                              key={month.value}
+                              value={month.label}
+                              onSelect={() => {
+                                setSelectedMonth(month.value);
+                                setMonthSearchOpen(false);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  selectedMonth === month.value ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {month.label}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
 
