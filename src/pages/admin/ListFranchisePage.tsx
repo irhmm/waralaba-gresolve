@@ -640,19 +640,86 @@ const ListFranchisePage = () => {
 
       {/* Controls */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <CardHeader>
+          {/* Search Bar */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari franchise..."
+                placeholder="Cari nama, franchise ID, slug..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 input-field"
+                className="pl-9"
               />
             </div>
-            
-            <div className="flex items-center gap-2">
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-blue-600">
+                    <Filter className="h-4 w-4 text-blue-500" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">Filter</h4>
+                    </div>
+
+                    {/* Status Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Status</Label>
+                      <Select value={statusFilter} onValueChange={setStatusFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Semua Status" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-white">
+                          <SelectItem value="all">Semua Status</SelectItem>
+                          <SelectItem value="active">Active (Worker &gt; 0)</SelectItem>
+                          <SelectItem value="inactive">Inactive (Worker = 0)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Revenue Filter */}
+                    <div className="space-y-2">
+                      <Label htmlFor="revenue">Revenue</Label>
+                      <Select value={revenueFilter} onValueChange={setRevenueFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Semua Revenue" />
+                        </SelectTrigger>
+                        <SelectContent className="z-50 bg-white">
+                          <SelectItem value="all">Semua Revenue</SelectItem>
+                          <SelectItem value="positive">Positive (&gt; 0)</SelectItem>
+                          <SelectItem value="negative">Negative (&lt; 0)</SelectItem>
+                          <SelectItem value="zero">Zero (= 0)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Filter Actions */}
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setStatusFilter('all');
+                          setRevenueFilter('all');
+                          setSearchTerm('');
+                        }}
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Button variant="outline" onClick={exportToCSV} className="text-blue-600">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
+              
               <Select value={viewMode} onValueChange={(value: 'grid' | 'table') => setViewMode(value)}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -672,9 +739,21 @@ const ListFranchisePage = () => {
                   </SelectItem>
                 </SelectContent>
               </Select>
+              
+              <Button onClick={() => navigate('/admin/franchises/new')} className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4" />
+                Tambah Data
+              </Button>
             </div>
           </div>
-        </CardContent>
+          
+          <div>
+            <CardTitle>Data Franchise</CardTitle>
+            <CardDescription>
+              Kelola data franchise dan lihat ringkasan finansial
+            </CardDescription>
+          </div>
+        </CardHeader>
       </Card>
 
       {/* Stats Cards */}

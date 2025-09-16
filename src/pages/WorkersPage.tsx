@@ -242,43 +242,28 @@ export default function WorkersPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Data Worker</CardTitle>
-              <CardDescription>
-                Kelola data worker franchise
-              </CardDescription>
+          {/* Search Bar */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari nama, rekening, WA, role..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
             </div>
-            <div className="flex items-center gap-2">
-              {/* Filter Popover */}
-              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+            <div className="flex gap-2">
+              <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" className="text-blue-600">
                     <Filter className="h-4 w-4 text-blue-500" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80 bg-white border rounded-lg shadow-lg">
-                  <div className="space-y-4 p-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium">Filter Data</h4>
-                      <Button variant="ghost" size="sm" onClick={() => setFilterOpen(false)}>
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    
-                    {/* Global Search */}
-                    <div className="space-y-2">
-                      <Label htmlFor="search">Pencarian Global</Label>
-                      <div className="relative">
-                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="search"
-                          placeholder="Cari nama, rekening, WA, role..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-8"
-                        />
-                      </div>
+                <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Filter</h4>
                     </div>
 
                     {/* Status Filter */}
@@ -288,7 +273,7 @@ export default function WorkersPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Semua Status" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-50 bg-white">
                           <SelectItem value="all">Semua Status</SelectItem>
                           {availableStatuses.map(status => (
                             <SelectItem key={status} value={status}>
@@ -306,7 +291,7 @@ export default function WorkersPage() {
                         <SelectTrigger>
                           <SelectValue placeholder="Semua Role" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-50 bg-white">
                           <SelectItem value="all">Semua Role</SelectItem>
                           {availableRoles.map(role => (
                             <SelectItem key={role} value={role}>
@@ -318,7 +303,7 @@ export default function WorkersPage() {
                     </div>
 
                     {/* Filter Actions */}
-                    <div className="flex gap-2 pt-4 border-t">
+                    <div className="flex gap-2 pt-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -327,21 +312,14 @@ export default function WorkersPage() {
                       >
                         Reset
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => setFilterOpen(false)}
-                        className="flex-1"
-                      >
-                        Terapkan Filter
-                      </Button>
                     </div>
                   </div>
                 </PopoverContent>
               </Popover>
 
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
+              <Button variant="outline" onClick={handleExport} className="text-blue-600">
+                <Download className="h-4 w-4" />
+                Export
               </Button>
 
               {canWrite && (
@@ -350,9 +328,9 @@ export default function WorkersPage() {
                     <Button onClick={() => {
                       setEditingItem(null);
                       setFormData({ nama: '', rekening: '', wa: '', role: '', status: 'active' });
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Worker
+                    }} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4" />
+                      Tambah Data
                     </Button>
                   </DialogTrigger>
                 <DialogContent>
@@ -418,6 +396,13 @@ export default function WorkersPage() {
               </Dialog>
             )}
             </div>
+          </div>
+          
+          <div>
+            <CardTitle>Data Worker</CardTitle>
+            <CardDescription>
+              Kelola data worker franchise
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>

@@ -50,3 +50,16 @@ export const exportExpensesToExcel = (data: any[]) => {
 
   exportToExcel(exportData, 'pengeluaran', 'Pengeluaran');
 };
+
+export const exportWorkersToExcel = (data: any[]) => {
+  const exportData = data.map(item => ({
+    'Nama': item.nama,
+    'Rekening': item.rekening || '-',
+    'WhatsApp': item.wa || '-',
+    'Role': item.role || '-',
+    'Status': item.status,
+    'Created At': format(new Date(item.created_at), 'dd/MM/yyyy HH:mm')
+  }));
+
+  exportToExcel(exportData, 'workers_data', 'Data Workers');
+};

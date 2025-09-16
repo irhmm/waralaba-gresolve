@@ -292,26 +292,28 @@ export default function AdminIncomePage() {
       {/* Filters and Actions */}
       <Card>
         <CardHeader>
-          {/* Filters and Actions */}
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Pendapatan Admin</CardTitle>
-              <CardDescription>
-                Kelola data pendapatan admin franchise
-              </CardDescription>
+          {/* Search Bar */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari berdasarkan code..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
             </div>
             <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="text-blue-600">
-                    <Filter className="h-4 w-4 mr-2 text-blue-500" />
-                    Filter
+                    <Filter className="h-4 w-4 text-blue-500" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Filter Data</h4>
+                      <h4 className="font-medium">Filter</h4>
                     </div>
                     
                     <div className="space-y-3">
@@ -368,9 +370,9 @@ export default function AdminIncomePage() {
                 </PopoverContent>
               </Popover>
               
-              <Button variant="outline" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
+              <Button variant="outline" onClick={handleExport} className="text-blue-600">
+                <Download className="h-4 w-4" />
+                Export
               </Button>
               {canWrite && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -378,9 +380,9 @@ export default function AdminIncomePage() {
                     <Button onClick={() => {
                       setEditingItem(null);
                       setFormData({ code: '', nominal: '' });
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Pendapatan
+                    }} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4" />
+                      Tambah Data
                     </Button>
                   </DialogTrigger>
                 <DialogContent>
@@ -417,6 +419,13 @@ export default function AdminIncomePage() {
               </Dialog>
             )}
             </div>
+          </div>
+          
+          <div>
+            <CardTitle>Pendapatan Admin</CardTitle>
+            <CardDescription>
+              Kelola data pendapatan admin franchise
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>

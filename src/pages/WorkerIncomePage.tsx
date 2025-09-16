@@ -330,27 +330,98 @@ export default function WorkerIncomePage() {
       {/* Filters and Actions */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Pendapatan Worker</CardTitle>
-              <CardDescription>
-                Kelola data pendapatan worker franchise
-              </CardDescription>
+          {/* Search Bar */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari berdasarkan code, jobdesk..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-blue-600">
+                    <Filter className="h-4 w-4 text-blue-500" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Filter</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="month-filter">Bulan</Label>
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Semua Bulan" />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-white">
+                            <SelectItem value="all">Semua Bulan</SelectItem>
+                            {availableMonths.map((month) => (
+                              <SelectItem key={month.value} value={month.value}>
+                                {month.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="worker-filter">Worker</Label>
+                        <Select value={selectedWorker} onValueChange={setSelectedWorker}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Semua Worker" />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-white">
+                            <SelectItem value="all">Semua Worker</SelectItem>
+                            {filteredWorkers.map((worker) => (
+                              <SelectItem key={worker.id} value={worker.id}>
+                                {worker.nama}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedMonth('all');
+                          setSelectedWorker('all');
+                          setSearchTerm('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Button variant="outline" onClick={handleExport} className="text-blue-600">
+                <Download className="h-4 w-4" />
+                Export
               </Button>
+              
               {canWrite && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {
                       setEditingItem(null);
                       setFormData({ code: '', jobdesk: '', fee: '', worker_id: '' });
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Pendapatan
+                    }} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4" />
+                      Tambah Data
                     </Button>
                   </DialogTrigger>
                 <DialogContent>
@@ -414,6 +485,13 @@ export default function WorkerIncomePage() {
               </Dialog>
             )}
             </div>
+          </div>
+          
+          <div>
+            <CardTitle>Pendapatan Worker</CardTitle>
+            <CardDescription>
+              Kelola data pendapatan worker franchise
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>

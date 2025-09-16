@@ -227,26 +227,28 @@ export default function ExpensesPage() {
 
       <Card>
         <CardHeader>
-          {/* Filters and Actions */}
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Pengeluaran</CardTitle>
-              <CardDescription>
-                Kelola data pengeluaran franchise
-              </CardDescription>
+          {/* Search Bar */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Cari berdasarkan keterangan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9"
+              />
             </div>
             <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="sm" className="text-blue-600">
-                    <Filter className="h-4 w-4 mr-2 text-blue-500" />
-                    Filter
+                    <Filter className="h-4 w-4 text-blue-500" />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <h4 className="font-medium">Filter Data</h4>
+                      <h4 className="font-medium">Filter</h4>
                     </div>
                     
                     <div className="space-y-3">
@@ -285,19 +287,20 @@ export default function ExpensesPage() {
                 </PopoverContent>
               </Popover>
               
-              <Button variant="outline" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
-                Export Excel
+              <Button variant="outline" onClick={handleExport} className="text-blue-600">
+                <Download className="h-4 w-4" />
+                Export
               </Button>
+              
               {canWrite && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {
                       setEditingItem(null);
                       setFormData({ nominal: '', keterangan: '' });
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Tambah Pengeluaran
+                    }} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4" />
+                      Tambah Data
                     </Button>
                   </DialogTrigger>
                 <DialogContent>
@@ -333,9 +336,16 @@ export default function ExpensesPage() {
                 </DialogContent>
               </Dialog>
             )}
+            </div>
           </div>
-        </div>
-       </CardHeader>
+          
+          <div>
+            <CardTitle>Pengeluaran</CardTitle>
+            <CardDescription>
+              Kelola data pengeluaran franchise
+            </CardDescription>
+          </div>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
