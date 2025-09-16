@@ -865,14 +865,6 @@ const ListFranchisePage = () => {
                   <Button 
                     size="sm"
                     variant="outline"
-                    onClick={() => navigate(`/franchise/${franchise.slug}/dashboard`)}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  
-                  <Button 
-                    size="sm"
-                    variant="outline"
                     onClick={() => handleEditFranchise(franchise)}
                   >
                     <Edit className="w-4 h-4" />
@@ -958,13 +950,6 @@ const ListFranchisePage = () => {
                           onClick={() => setAssignUserModal({ isOpen: true, franchise })}
                         >
                           <UserPlus className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => navigate(`/franchise/${franchise.slug}/dashboard`)}
-                        >
-                          <Eye className="w-4 h-4" />
                         </Button>
                         <Button 
                           size="sm" 
