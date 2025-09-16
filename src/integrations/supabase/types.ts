@@ -532,6 +532,10 @@ export type Database = {
         Args: { target_user_id?: string }
         Returns: boolean
       }
+      recalculate_profit_sharing_for_settings_change: {
+        Args: { changed_franchise_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:

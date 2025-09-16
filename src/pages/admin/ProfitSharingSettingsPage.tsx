@@ -40,13 +40,10 @@ export default function ProfitSharingSettingsPage() {
 
       if (franchiseError) throw franchiseError;
 
-      // Get current profit sharing settings (using latest month as reference)
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
-      
+      // Get franchise-specific profit settings from franchise_profit_settings table
       const { data: settings, error: settingsError } = await supabase
-        .from("franchise_profit_sharing")
-        .select("franchise_id, admin_percentage, franchise_percentage")
-        .eq("month_year", currentMonth);
+        .from("franchise_profit_settings")
+        .select("franchise_id, admin_percentage, franchise_percentage");
 
       if (settingsError && settingsError.code !== 'PGRST116') { // PGRST116 = no rows found
         throw settingsError;
@@ -58,8 +55,8 @@ export default function ProfitSharingSettingsPage() {
         return {
           franchise_id: franchise.id,
           franchise_name: franchise.name,
-          admin_percentage: setting?.admin_percentage || 20,
-          franchise_percentage: setting?.franchise_percentage || 80,
+          admin_percentage: setting?.admin_percentage ?? 20,
+          franchise_percentage: setting?.franchise_percentage ?? 80,
         };
       });
     },
@@ -67,26 +64,28 @@ export default function ProfitSharingSettingsPage() {
 
   const updateSettingsMutation = useMutation({
     mutationFn: async (data: { franchise_id: string; admin_percentage: number }) => {
-      const currentMonth = new Date().toISOString().slice(0, 7);
       const franchise_percentage = 100 - data.admin_percentage;
 
-      // Insert or update the settings for current month
+      // Save to franchise_profit_settings table (persistent settings)
       const { error } = await supabase
-        .from("franchise_profit_sharing")
+        .from("franchise_profit_settings")
         .upsert({
           franchise_id: data.franchise_id,
-          month_year: currentMonth,
           admin_percentage: data.admin_percentage,
           franchise_percentage: franchise_percentage,
-          total_revenue: 0,
-          share_nominal: 0,
-          payment_status: 'unpaid',
           created_by: (await supabase.auth.getUser()).data.user?.id
         }, {
-          onConflict: 'franchise_id,month_year'
+          onConflict: 'franchise_id'
         });
 
       if (error) throw error;
+
+      // Recalculate all existing months for this franchise to reflect new settings
+      const { error: recalcError } = await supabase.rpc('recalculate_profit_sharing_for_settings_change', {
+        changed_franchise_id: data.franchise_id
+      });
+
+      if (recalcError) throw recalcError;
     },
     onSuccess: () => {
       toast({
@@ -142,9 +141,9 @@ export default function ProfitSharingSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Persentase Bagi Hasil per Franchise</CardTitle>
+          <CardTitle>Pengaturan Bagi Hasil per Franchise</CardTitle>
           <p className="text-muted-foreground">
-            Atur persentase bagi hasil untuk setiap franchise. Persentase admin + franchise harus = 100%.
+            Atur persentase bagi hasil untuk setiap franchise. Pengaturan ini akan memperbarui semua data bagi hasil yang sudah ada. Persentase admin + franchise harus = 100%.
           </p>
         </CardHeader>
         <CardContent>
@@ -249,10 +248,11 @@ export default function ProfitSharingSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Pengaturan ini akan berlaku untuk perhitungan bagi hasil bulan depan</p>
+            <p>• Pengaturan ini akan langsung memperbarui semua data bagi hasil yang ada</p>
             <p>• Total pendapatan dihitung dari: Pendapatan Admin + Pendapatan Worker</p>
             <p>• Nominal bagi hasil = Total Pendapatan × Persentase Admin</p>
             <p>• Persentase default: Admin 20%, Franchise 80%</p>
+            <p>• Perubahan akan segera terlihat di halaman "Data Bagi Hasil Franchise"</p>
           </div>
         </CardContent>
       </Card>

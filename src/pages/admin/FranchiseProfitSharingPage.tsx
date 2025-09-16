@@ -97,9 +97,9 @@ export default function FranchiseProfitSharingPage() {
         return data?.map((item: any) => ({
           franchise_id: item.franchise_id,
           franchise_name: item.franchise_name,
-          monthly_revenue: item.total_revenue || 0,
-          admin_percentage: item.admin_percentage || 20,
-          profit_share_amount: item.share_nominal || (item.total_revenue * item.admin_percentage / 100) || 0,
+          monthly_revenue: item.total_revenue ?? 0,
+          admin_percentage: item.admin_percentage ?? 20,
+          profit_share_amount: item.share_nominal ?? ((item.total_revenue ?? 0) * (item.admin_percentage ?? 20) / 100),
           payment_status: item.payment_status as 'paid' | 'unpaid'
         })) || [];
       } catch (error) {
@@ -334,7 +334,7 @@ export default function FranchiseProfitSharingPage() {
                 variant="secondary"
                 onClick={() => recalcMutation.mutate()}
                 className="hover:opacity-90"
-                title="Menghitung ulang total pendapatan dan nominal bagi hasil berdasarkan data admin_income + worker_income terbaru"
+                title="Menghitung ulang total pendapatan dan nominal bagi hasil berdasarkan data admin_income + worker_income terbaru, serta menerapkan pengaturan persentase terbaru"
               >
                 Hitung Ulang Data
               </Button>
