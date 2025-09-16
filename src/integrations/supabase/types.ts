@@ -205,33 +205,6 @@ export type Database = {
         }
         Relationships: []
       }
-      global_profit_settings: {
-        Row: {
-          admin_percentage: number
-          created_at: string
-          created_by: string | null
-          franchise_percentage: number
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          admin_percentage?: number
-          created_at?: string
-          created_by?: string | null
-          franchise_percentage?: number
-          id?: string
-          updated_at?: string
-        }
-        Update: {
-          admin_percentage?: number
-          created_at?: string
-          created_by?: string | null
-          franchise_percentage?: number
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       role_changes: {
         Row: {
           actor_id: string
@@ -488,13 +461,6 @@ export type Database = {
       }
       get_global_franchise_profit_settings: {
         Args: { target_franchise_id: string }
-        Returns: {
-          admin_percentage: number
-          franchise_percentage: number
-        }[]
-      }
-      get_global_profit_settings: {
-        Args: Record<PropertyKey, never>
         Returns: {
           admin_percentage: number
           franchise_percentage: number
