@@ -113,10 +113,20 @@ const ProfitSharingPage = () => {
       return;
     }
 
+    if (adminPercentage + franchisePercentage !== 100) {
+      toast({
+        title: "Error",
+        description: "Total persentase harus 100%",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       
+      // Save the franchise-specific profit sharing settings
       const { error } = await supabase
         .from('franchise_profit_settings')
         .upsert({
@@ -130,8 +140,8 @@ const ProfitSharingPage = () => {
 
       if (error) throw error;
 
-      // Trigger recalculation for current month to apply new settings
-      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      // Trigger recalculation for current month to apply new settings immediately
+      const currentMonth = format(new Date(), 'yyyy-MM');
       const { error: calcError } = await supabase
         .rpc('calculate_franchise_profit_sharing', {
           target_month_year: currentMonth
@@ -139,13 +149,18 @@ const ProfitSharingPage = () => {
 
       if (calcError) {
         console.error('Calculation error:', calcError);
-        // Don't fail the save, but log the error
+        // Don't fail the save, but notify user about calculation issue
+        toast({
+          title: "Pengaturan Disimpan",
+          description: "Pengaturan disimpan, tapi perhitungan ulang gagal. Silakan hitung ulang manual.",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Berhasil",
+          description: "Pengaturan bagi hasil berhasil disimpan dan diterapkan",
+        });
       }
-
-      toast({
-        title: "Berhasil",
-        description: "Pengaturan bagi hasil berhasil disimpan dan diterapkan",
-      });
     } catch (error) {
       console.error('Save error:', error);
       toast({

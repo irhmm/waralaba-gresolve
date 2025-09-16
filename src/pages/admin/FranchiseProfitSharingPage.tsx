@@ -131,7 +131,13 @@ export default function FranchiseProfitSharingPage() {
       queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing-months'] });
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: 'Gagal menghitung ulang: ' + error.message, variant: 'destructive' });
+      console.error('Recalculate error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      toast({ 
+        title: 'Error', 
+        description: error?.message || 'Gagal menghitung ulang data bagi hasil', 
+        variant: 'destructive' 
+      });
     },
   });
 
