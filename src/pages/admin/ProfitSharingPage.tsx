@@ -14,7 +14,7 @@ interface Franchise {
   franchise_id: string;
 }
 
-interface GlobalProfitSettings {
+interface ProfitSharing {
   franchise_id: string;
   admin_percentage: number;
   franchise_percentage: number;
@@ -35,7 +35,7 @@ const ProfitSharingPage = () => {
 
   useEffect(() => {
     if (selectedFranchise) {
-      fetchGlobalProfitSettings();
+      fetchProfitSharing();
     }
   }, [selectedFranchise]);
 
@@ -57,7 +57,7 @@ const ProfitSharingPage = () => {
     }
   };
 
-  const fetchGlobalProfitSettings = async () => {
+  const fetchProfitSharing = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -100,7 +100,7 @@ const ProfitSharingPage = () => {
     }
   };
 
-  const saveGlobalProfitSettings = async () => {
+  const saveProfitSharing = async () => {
     if (!selectedFranchise) {
       toast({
         title: "Error",
@@ -129,7 +129,7 @@ const ProfitSharingPage = () => {
 
       toast({
         title: "Berhasil",
-        description: "Pengaturan bagi hasil global berhasil disimpan. Pengaturan ini akan berlaku untuk semua bulan.",
+        description: "Pengaturan bagi hasil berhasil disimpan dan akan berlaku untuk semua bulan",
       });
     } catch (error) {
       toast({
@@ -142,19 +142,24 @@ const ProfitSharingPage = () => {
     }
   };
 
-
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Settings className="h-6 w-6 text-primary" />
-        <h1 className="text-2xl font-bold text-foreground">Pengaturan Bagi Hasil Franchise</h1>
+        <h1 className="text-2xl font-bold text-foreground">Pengaturan Bagi Hasil Global</h1>
+      </div>
+      
+      <div className="bg-info/10 border border-info/20 rounded-lg p-4 mb-4">
+        <p className="text-sm text-info-foreground">
+          ℹ️ Pengaturan ini akan berlaku untuk semua bulan dan tahun. Sekali mengubah persentase, maka akan langsung diterapkan pada semua perhitungan bagi hasil.
+        </p>
       </div>
 
       <Card className="border-border bg-card">
         <CardHeader className="border-b border-border">
           <CardTitle className="flex items-center gap-2 text-card-foreground">
             <Percent className="h-5 w-5 text-primary" />
-            Atur Persentase Bagi Hasil
+            Atur Persentase Global Bagi Hasil
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
@@ -174,16 +179,6 @@ const ProfitSharingPage = () => {
               </SelectContent>
             </Select>
           </div>
-
-          {/* Information Alert */}
-          {selectedFranchise && (
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="text-sm text-blue-800">
-                <strong>📋 Informasi:</strong> Pengaturan persentase bagi hasil ini akan berlaku untuk <strong>semua bulan dan tahun</strong>. 
-                Setelah disimpan, perhitungan bagi hasil untuk semua periode akan menggunakan persentase yang baru.
-              </div>
-            </div>
-          )}
 
           {/* Percentage Settings */}
           {selectedFranchise && (
@@ -236,9 +231,12 @@ const ProfitSharingPage = () => {
           {selectedFranchise && (
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="text-center space-y-2">
-                <div className="text-sm text-muted-foreground">Total Persentase</div>
-                <div className="text-xl font-bold text-foreground">
-                  {adminPercentage + franchisePercentage}%
+                <div className="text-sm text-muted-foreground">Pengaturan Berlaku untuk Semua Bulan</div>
+                <div className="text-lg font-bold text-foreground">
+                  Admin: {adminPercentage}% | Franchise: {franchisePercentage}%
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Persentase ini akan diterapkan pada semua perhitungan bagi hasil
                 </div>
                 {adminPercentage + franchisePercentage !== 100 && (
                   <div className="text-sm text-destructive">
@@ -253,7 +251,7 @@ const ProfitSharingPage = () => {
           {selectedFranchise && (
             <div className="flex justify-end">
               <Button 
-                onClick={saveGlobalProfitSettings}
+                onClick={saveProfitSharing}
                 disabled={saving || loading || adminPercentage + franchisePercentage !== 100}
                 className="bg-primary hover:bg-primary/90"
               >
