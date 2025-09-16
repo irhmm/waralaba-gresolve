@@ -238,148 +238,172 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {userRole?.role === 'super_admin' ? (
           <>
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Franchise</CardTitle>
-                <Building2 className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-blue-800">Total Franchise</CardTitle>
+                <div className="p-2 bg-blue-500 text-white rounded-full">
+                  <Building2 className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalFranchises || 0}</div>
-                <p className="text-xs text-muted-foreground">Franchise terdaftar</p>
+                <div className="text-2xl font-bold text-blue-900">{stats.totalFranchises || 0}</div>
+                <p className="text-xs text-blue-600">Franchise terdaftar</p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pendapatan Worker</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-green-800">Total Pendapatan Worker</CardTitle>
+                <div className="p-2 bg-green-500 text-white rounded-full">
+                  <DollarSign className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalWorkerIncome || 0)}</div>
-                <p className="text-xs text-muted-foreground">Keseluruhan franchise</p>
+                <div className="text-2xl font-bold text-green-900">{formatCurrency(stats.totalWorkerIncome || 0)}</div>
+                <p className="text-xs text-green-600">Keseluruhan franchise</p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pendapatan Admin</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-purple-800">Total Pendapatan Admin</CardTitle>
+                <div className="p-2 bg-purple-500 text-white rounded-full">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalAdminIncome || 0)}</div>
-                <p className="text-xs text-muted-foreground">Keseluruhan franchise</p>
+                <div className="text-2xl font-bold text-purple-900">{formatCurrency(stats.totalAdminIncome || 0)}</div>
+                <p className="text-xs text-purple-600">Keseluruhan franchise</p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Worker</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-orange-800">Total Worker</CardTitle>
+                <div className="p-2 bg-orange-500 text-white rounded-full">
+                  <Users className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalWorkers || 0}</div>
-                <p className="text-xs text-muted-foreground">Worker aktif</p>
+                <div className="text-2xl font-bold text-orange-900">{stats.totalWorkers || 0}</div>
+                <p className="text-xs text-orange-600">Worker aktif</p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Bagi Hasil (Bulan Ini)</CardTitle>
-                <Percent className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-emerald-800">Total Bagi Hasil (Bulan Ini)</CardTitle>
+                <div className="p-2 bg-emerald-500 text-white rounded-full">
+                  <Percent className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.thisMonthProfitSharing || 0)}</div>
-                <p className="text-xs text-muted-foreground">Berdasarkan seluruh franchise</p>
+                <div className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.thisMonthProfitSharing || 0)}</div>
+                <p className="text-xs text-emerald-600">Berdasarkan seluruh franchise</p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-red-50 to-red-100 border-red-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Pengeluaran (Bulan Ini)</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-red-800">Total Pengeluaran (Bulan Ini)</CardTitle>
+                <div className="p-2 bg-red-500 text-white rounded-full">
+                  <CreditCard className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.thisMonthTotalExpenses || 0)}</div>
-                <p className="text-xs text-muted-foreground">Berdasarkan seluruh franchise</p>
+                <div className="text-2xl font-bold text-red-900">{formatCurrency(stats.thisMonthTotalExpenses || 0)}</div>
+                <p className="text-xs text-red-600">Berdasarkan seluruh franchise</p>
               </CardContent>
             </Card>
           </>
         ) : (
           <>
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pendapatan Worker</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-blue-800">Pendapatan Worker</CardTitle>
+                <div className="p-2 bg-blue-500 text-white rounded-full">
+                  <DollarSign className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalWorkerIncome || 0)}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-2xl font-bold text-blue-900">{formatCurrency(stats.totalWorkerIncome || 0)}</div>
+                <p className="text-xs text-blue-600">
                   Bulan ini: {formatCurrency(stats.thisMonthWorkerIncome || 0)}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pendapatan Admin</CardTitle>
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-purple-800">Pendapatan Admin</CardTitle>
+                <div className="p-2 bg-purple-500 text-white rounded-full">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalAdminIncome || 0)}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-2xl font-bold text-purple-900">{formatCurrency(stats.totalAdminIncome || 0)}</div>
+                <p className="text-xs text-purple-600">
                   Bulan ini: {formatCurrency(stats.thisMonthAdminIncome || 0)}
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="card-hover">
+            <Card className="card-hover bg-gradient-to-br from-red-50 to-red-100 border-red-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pengeluaran</CardTitle>
-                <CreditCard className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-red-800">Pengeluaran</CardTitle>
+                <div className="p-2 bg-red-500 text-white rounded-full">
+                  <CreditCard className="h-4 w-4" />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses || 0)}</div>
-                <p className="text-xs text-muted-foreground">
+                <div className="text-2xl font-bold text-red-900">{formatCurrency(stats.totalExpenses || 0)}</div>
+                <p className="text-xs text-red-600">
                   Bulan ini: {formatCurrency(stats.thisMonthExpenses || 0)}
                 </p>
               </CardContent>
             </Card>
 
             {(userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') && (
-              <Card className="card-hover">
+              <Card className="card-hover bg-gradient-to-br from-green-50 to-green-100 border-green-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Penarikan Gaji</CardTitle>
-                  <Wallet className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-green-800">Penarikan Gaji</CardTitle>
+                  <div className="p-2 bg-green-500 text-white rounded-full">
+                    <Wallet className="h-4 w-4" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(stats.totalSalaryWithdrawals || 0)}</div>
-                  <p className="text-xs text-muted-foreground">Total penarikan</p>
+                  <div className="text-2xl font-bold text-green-900">{formatCurrency(stats.totalSalaryWithdrawals || 0)}</div>
+                  <p className="text-xs text-green-600">Total penarikan</p>
                 </CardContent>
               </Card>
             )}
 
             {userRole?.role === 'admin_marketing' && (
-              <Card className="card-hover">
+              <Card className="card-hover bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Worker</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-orange-800">Total Worker</CardTitle>
+                  <div className="p-2 bg-orange-500 text-white rounded-full">
+                    <Users className="h-4 w-4" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.totalWorkers || 0}</div>
-                  <p className="text-xs text-muted-foreground">Worker aktif</p>
+                  <div className="text-2xl font-bold text-orange-900">{stats.totalWorkers || 0}</div>
+                  <p className="text-xs text-orange-600">Worker aktif</p>
                 </CardContent>
               </Card>
             )}
 
             {userRole?.role === 'franchise' && (
-              <Card className="card-hover">
+              <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Bagi Hasil Owner</CardTitle>
-                  <Percent className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium text-emerald-800">Bagi Hasil Owner</CardTitle>
+                  <div className="p-2 bg-emerald-500 text-white rounded-full">
+                    <Percent className="h-4 w-4" />
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{formatCurrency(stats.adminProfitShare || 0)}</div>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.adminProfitShare || 0)}</div>
+                  <p className="text-xs text-emerald-600">
                     Persentase: {stats.profitSharingPercentage || 20}% dari pendapatan bulanan
                   </p>
                 </CardContent>
