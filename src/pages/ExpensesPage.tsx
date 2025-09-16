@@ -41,7 +41,7 @@ export default function ExpensesPage() {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('all');
 
   // Only super_admin, franchise, and admin_keuangan can access expenses
   const canAccess = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role);
@@ -148,6 +148,40 @@ export default function ExpensesPage() {
     }
   };
 
+  // Filtered and grouped data
+  const filteredData = useMemo(() => {
+    let filtered = expenses;
+
+    // Global search (by keterangan)
+    if (searchTerm) {
+      filtered = filtered.filter(item =>
+        item.keterangan.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Month filter
+    if (selectedMonth && selectedMonth !== 'all') {
+      filtered = filtered.filter(item => {
+        const itemMonth = format(new Date(item.tanggal), 'yyyy-MM');
+        return itemMonth === selectedMonth;
+      });
+    }
+
+    return filtered;
+  }, [expenses, searchTerm, selectedMonth]);
+
+  const groupedData = useMemo(() => {
+    const grouped = groupDataByMonth(filteredData);
+    return calculateMonthlyTotals(grouped, 'nominal');
+  }, [filteredData]);
+
+  const availableMonths = useMemo(() => getAvailableMonths(expenses), [expenses]);
+
+  const handleExport = () => {
+    exportExpensesToExcel(filteredData);
+    toast({ title: "Success", description: "Data exported to Excel successfully!" });
+  };
+
   if (!canAccess) {
     return (
       <Card>
@@ -167,7 +201,32 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
+      {/* Monthly Summary Cards */}
+      {Object.keys(groupedData).length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.entries(groupedData)
+            .sort(([a], [b]) => b.localeCompare(a))
+            .slice(0, 6)
+            .map(([month, data]) => (
+            <Card key={month} className="bg-gradient-to-r from-red-50 to-white border-red-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-600">{data.label}</p>
+                    <p className="text-2xl font-bold text-red-900">
+                      Rp {data.total.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-xs text-red-500">{data.items.length} transaksi</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
       <Card>
+        <CardHeader>
           {/* Filters and Actions */}
           <div className="flex justify-between items-center">
             <div>
@@ -226,7 +285,7 @@ export default function ExpensesPage() {
                 </PopoverContent>
               </Popover>
               
-              <Button variant="outline" onClick={() => {}}>
+              <Button variant="outline" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Excel
               </Button>
@@ -275,7 +334,8 @@ export default function ExpensesPage() {
               </Dialog>
             )}
           </div>
-        </CardHeader>
+        </div>
+       </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -287,8 +347,8 @@ export default function ExpensesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expenses.map((item) => (
-                <TableRow key={item.id}>
+              {filteredData.map((item) => (
+                <TableRow key={item.id} className="hover:bg-red-50/50">
                   <TableCell>Rp {item.nominal.toLocaleString('id-ID')}</TableCell>
                   <TableCell>{item.keterangan}</TableCell>
                   <TableCell>{format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')}</TableCell>
@@ -310,10 +370,13 @@ export default function ExpensesPage() {
                   )}
                 </TableRow>
               ))}
-              {expenses.length === 0 && (
+              {filteredData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 4 : 3} className="text-center text-muted-foreground">
-                    Belum ada data pengeluaran
+                    {searchTerm || (selectedMonth && selectedMonth !== 'all')
+                      ? 'Tidak ada data yang sesuai dengan filter' 
+                      : 'Belum ada data pengeluaran'
+                    }
                   </TableCell>
                 </TableRow>
               )}

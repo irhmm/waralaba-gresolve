@@ -417,6 +417,7 @@ export default function AdminIncomePage() {
               </Dialog>
             )}
             </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
