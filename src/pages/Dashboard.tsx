@@ -211,13 +211,18 @@ const Dashboard = () => {
           .from('expenses')
           .select('nominal, tanggal');
 
+        // Fetch profit sharing data
+        const { data: profitSharing } = await supabase
+          .from('franchise_profit_sharing')
+          .select('share_nominal, month_year');
+
         // Group by month
         const monthlyData: { [key: string]: MonthlySummary } = {};
 
         adminIncome?.forEach(item => {
           const month = format(new Date(item.tanggal), 'yyyy-MM');
           if (!monthlyData[month]) {
-            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0 };
+            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0, profitSharing: 0 };
           }
           monthlyData[month].adminIncome += Number(item.nominal);
         });
@@ -225,7 +230,7 @@ const Dashboard = () => {
         workerIncome?.forEach(item => {
           const month = format(new Date(item.tanggal), 'yyyy-MM');
           if (!monthlyData[month]) {
-            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0 };
+            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0, profitSharing: 0 };
           }
           monthlyData[month].workerIncome += Number(item.fee);
         });
@@ -233,9 +238,17 @@ const Dashboard = () => {
         expenses?.forEach(item => {
           const month = format(new Date(item.tanggal), 'yyyy-MM');
           if (!monthlyData[month]) {
-            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0 };
+            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0, profitSharing: 0 };
           }
           monthlyData[month].expenses += Number(item.nominal);
+        });
+
+        profitSharing?.forEach(item => {
+          const month = item.month_year;
+          if (!monthlyData[month]) {
+            monthlyData[month] = { month, adminIncome: 0, workerIncome: 0, expenses: 0, profitSharing: 0 };
+          }
+          monthlyData[month].profitSharing += Number(item.share_nominal);
         });
 
         const summaryArray = Object.values(monthlyData).sort((a, b) => b.month.localeCompare(a.month));
@@ -342,6 +355,7 @@ const Dashboard = () => {
       'Pendapatan Admin': item.adminIncome,
       'Pendapatan Worker': item.workerIncome,
       'Pengeluaran': item.expenses,
+      ...(userRole?.role === 'super_admin' && { 'Total Bagi Hasil': item.profitSharing || 0 }),
       ...(userRole?.role !== 'super_admin' && { 'Omset': item.omset || 0 })
     }));
 
@@ -686,6 +700,9 @@ const Dashboard = () => {
                         <TableHead className="font-semibold text-blue-900 text-right">Pendapatan Admin</TableHead>
                         <TableHead className="font-semibold text-blue-900 text-right">Pendapatan Worker</TableHead>
                         <TableHead className="font-semibold text-blue-900 text-right">Pengeluaran</TableHead>
+                        {userRole?.role === 'super_admin' && (
+                          <TableHead className="font-semibold text-blue-900 text-right">Total Bagi Hasil</TableHead>
+                        )}
                         {userRole?.role !== 'super_admin' && (
                           <TableHead className="font-semibold text-blue-900 text-right">Omset</TableHead>
                         )}
@@ -709,6 +726,11 @@ const Dashboard = () => {
                           <TableCell className="text-right text-red-600 font-medium">
                             {formatCurrency(item.expenses)}
                           </TableCell>
+                          {userRole?.role === 'super_admin' && (
+                            <TableCell className="text-right text-purple-600 font-medium">
+                              {formatCurrency(item.profitSharing || 0)}
+                            </TableCell>
+                          )}
                           {userRole?.role !== 'super_admin' && (
                             <TableCell className="text-right text-emerald-600 font-semibold">
                               {formatCurrency(item.omset || 0)}
@@ -730,6 +752,11 @@ const Dashboard = () => {
                           <TableCell className="text-right text-red-700 font-bold">
                             {formatCurrency(paginatedSummary.reduce((sum, item) => sum + item.expenses, 0))}
                           </TableCell>
+                          {userRole?.role === 'super_admin' && (
+                            <TableCell className="text-right text-purple-700 font-bold">
+                              {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.profitSharing || 0), 0))}
+                            </TableCell>
+                          )}
                           {userRole?.role !== 'super_admin' && (
                             <TableCell className="text-right text-emerald-700 font-bold">
                               {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.omset || 0), 0))}
