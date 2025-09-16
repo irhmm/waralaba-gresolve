@@ -372,15 +372,7 @@ const ListFranchisePage = () => {
       
       if (workerIncomeError) throw workerIncomeError;
 
-      // 2. Delete salary withdrawals
-      const { error: salaryError } = await supabase
-        .from('salary_withdrawals')
-        .delete()
-        .eq('franchise_id', franchiseId);
-      
-      if (salaryError) throw salaryError;
-
-      // 3. Delete workers
+      // 2. Delete workers
       const { error: workersError } = await supabase
         .from('workers')
         .delete()
@@ -1248,7 +1240,6 @@ const ListFranchisePage = () => {
                 <li>All worker records and income data</li>
                 <li>All admin income records</li>
                 <li>All expense records</li>
-                <li>All salary withdrawal records</li>
                 <li>All user role assignments</li>
               </ul>
               <p className="font-medium">This action cannot be undone.</p>

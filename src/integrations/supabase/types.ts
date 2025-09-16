@@ -262,51 +262,6 @@ export type Database = {
         }
         Relationships: []
       }
-      salary_withdrawals: {
-        Row: {
-          amount: number
-          created_at: string | null
-          created_by: string
-          franchise_id: string
-          id: string
-          tanggal: string | null
-          worker_id: string
-        }
-        Insert: {
-          amount: number
-          created_at?: string | null
-          created_by: string
-          franchise_id: string
-          id?: string
-          tanggal?: string | null
-          worker_id: string
-        }
-        Update: {
-          amount?: number
-          created_at?: string | null
-          created_by?: string
-          franchise_id?: string
-          id?: string
-          tanggal?: string | null
-          worker_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "salary_withdrawals_franchise_id_fkey"
-            columns: ["franchise_id"]
-            isOneToOne: false
-            referencedRelation: "franchises"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "salary_withdrawals_worker_id_fkey"
-            columns: ["worker_id"]
-            isOneToOne: false
-            referencedRelation: "workers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       user_roles: {
         Row: {
           created_at: string | null

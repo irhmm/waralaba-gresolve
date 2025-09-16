@@ -21,9 +21,7 @@ import {
   TrendingUp, 
   Settings,
   BarChart3,
-  Wallet,
   UserCheck,
-  Receipt,
   Plus,
   Percent
 } from 'lucide-react';
@@ -93,11 +91,6 @@ const menuItems = {
       icon: UserCheck,
     },
     {
-      title: 'Penarikan Gaji',
-      url: '/salary-withdrawals',
-      icon: Wallet,
-    },
-    {
       title: 'Laporan Keuangan',
       url: '/financial-report',
       icon: FileText,
@@ -128,16 +121,6 @@ const menuItems = {
       title: 'Data Worker',
       url: '/workers',
       icon: UserCheck,
-    },
-    {
-      title: 'Penarikan Gaji',
-      url: '/salary-withdrawals',
-      icon: Wallet,
-    },
-    {
-      title: 'Rekap Gaji',
-      url: '/salary-recap',
-      icon: Receipt,
     },
     {
       title: 'Laporan Keuangan',

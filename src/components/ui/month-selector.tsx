@@ -13,7 +13,7 @@ interface MonthOption {
   label: string;
 }
 
-type TableName = 'admin_income' | 'worker_income' | 'expenses' | 'franchise_profit_sharing' | 'salary_withdrawals';
+type TableName = 'admin_income' | 'worker_income' | 'expenses' | 'franchise_profit_sharing';
 
 interface MonthSelectorProps {
   value: string;
@@ -110,9 +110,6 @@ export function MonthSelector({
               break;
             case 'expenses':
               query = supabase.from('expenses').select('tanggal').not('tanggal', 'is', null);
-              break;
-            case 'salary_withdrawals':
-              query = supabase.from('salary_withdrawals').select('tanggal').not('tanggal', 'is', null);
               break;
             default:
               continue;

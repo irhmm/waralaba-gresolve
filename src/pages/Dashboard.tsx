@@ -14,7 +14,6 @@ import {
   TrendingUp, 
   Users,
   CreditCard,
-  Wallet,
   BarChart3,
   Calendar,
   Percent,
@@ -30,7 +29,6 @@ interface DashboardStats {
   totalAdminIncome?: number;
   totalExpenses?: number;
   totalWorkers?: number;
-  totalSalaryWithdrawals?: number;
   thisMonthWorkerIncome?: number;
   thisMonthAdminIncome?: number;
   thisMonthExpenses?: number;
@@ -161,12 +159,6 @@ const Dashboard = () => {
             .select('id')
             .eq('franchise_id', franchiseId);
           newStats.totalWorkers = workers?.length || 0;
-
-          const { data: salaryWithdrawals } = await supabase
-            .from('salary_withdrawals')
-            .select('amount')
-            .eq('franchise_id', franchiseId);
-          newStats.totalSalaryWithdrawals = salaryWithdrawals?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
 
           // Fetch profit sharing settings
           const currentMonthYear = format(new Date(), 'yyyy-MM');
@@ -552,21 +544,6 @@ const Dashboard = () => {
                 </p>
               </CardContent>
             </Card>
-
-            {(userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') && (
-              <Card className="card-hover bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-green-800">Penarikan Gaji</CardTitle>
-                  <div className="p-2 bg-green-500 text-white rounded-full">
-                    <Wallet className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-green-900">{formatCurrency(stats.totalSalaryWithdrawals || 0)}</div>
-                  <p className="text-xs text-green-600">Total penarikan</p>
-                </CardContent>
-              </Card>
-            )}
 
             {userRole?.role === 'admin_marketing' && (
               <Card className="card-hover bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
