@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Search, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
 import { exportAdminIncomeToExcel } from '@/utils/excelUtils';
@@ -291,6 +292,7 @@ export default function AdminIncomePage() {
       {/* Filters and Actions */}
       <Card>
         <CardHeader>
+          {/* Filters and Actions */}
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Pendapatan Admin</CardTitle>
@@ -299,6 +301,73 @@ export default function AdminIncomePage() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-blue-600">
+                    <Filter className="h-4 w-4 mr-2 text-blue-500" />
+                    Filter
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Filter Data</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="month-filter">Bulan</Label>
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Semua Bulan" />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-white">
+                            <SelectItem value="all">Semua Bulan</SelectItem>
+                            {availableMonths.map((month) => (
+                              <SelectItem key={month.value} value={month.value}>
+                                {month.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="code-filter">Code</Label>
+                        <Select value={codeFilter} onValueChange={setCodeFilter}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Semua Code" />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-white">
+                            <SelectItem value="all">Semua Code</SelectItem>
+                            {availableCodes.map((code) => (
+                              <SelectItem key={code} value={code}>
+                                {code}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedMonth('all');
+                          setCodeFilter('all');
+                          setSearchTerm('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
               <Button variant="outline" onClick={handleExport}>
                 <Download className="h-4 w-4 mr-2" />
                 Export Excel
@@ -348,58 +417,8 @@ export default function AdminIncomePage() {
               </Dialog>
             )}
             </div>
-          </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Label htmlFor="search">Cari (Kode)</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  id="search"
-                  placeholder="Cari berdasarkan kode..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="w-full md:w-48">
-              <Label htmlFor="month-filter">Filter Bulan</Label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua bulan" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
-                  <SelectItem value="all">Semua bulan</SelectItem>
-                  {availableMonths.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full md:w-48">
-              <Label htmlFor="code-filter">Filter Kode</Label>
-              <Select value={codeFilter} onValueChange={setCodeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua kode" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
-                  <SelectItem value="all">Semua kode</SelectItem>
-                  {availableCodes.map((code) => (
-                    <SelectItem key={code} value={code}>
-                      {code}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <Table>
             <TableHeader>
               <TableRow>

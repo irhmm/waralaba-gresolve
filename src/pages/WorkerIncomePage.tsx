@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Search, Download, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
 import { exportWorkerIncomeToExcel } from '@/utils/excelUtils';
@@ -416,63 +417,6 @@ export default function WorkerIncomePage() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <Label htmlFor="search">Cari (Kode, Job Desk, Worker)</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  id="search"
-                  placeholder="Cari data..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <div className="w-full md:w-48">
-              <Label htmlFor="month-filter">Filter Bulan</Label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua bulan" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
-                  <SelectItem value="all">Semua bulan</SelectItem>
-                  {availableMonths.map((month) => (
-                    <SelectItem key={month.value} value={month.value}>
-                      {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full md:w-48">
-              <Label htmlFor="worker-filter">Filter Worker</Label>
-              <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua worker" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-white">
-                  <SelectItem value="all">Semua worker</SelectItem>
-                  <div className="p-2">
-                    <Input
-                      placeholder="Cari worker..."
-                      value={workerSearchTerm}
-                      onChange={(e) => setWorkerSearchTerm(e.target.value)}
-                      className="mb-2"
-                    />
-                  </div>
-                  {filteredWorkers.map((worker) => (
-                    <SelectItem key={worker.id} value={worker.id}>
-                      {worker.nama}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
           <Table>
             <TableHeader>
               <TableRow>

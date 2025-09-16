@@ -10,7 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Search, Download } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
 import { exportExpensesToExcel } from '@/utils/excelUtils';
@@ -167,7 +168,7 @@ export default function ExpensesPage() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+          {/* Filters and Actions */}
           <div className="flex justify-between items-center">
             <div>
               <CardTitle>Pengeluaran</CardTitle>
@@ -175,17 +176,71 @@ export default function ExpensesPage() {
                 Kelola data pengeluaran franchise
               </CardDescription>
             </div>
-            {canWrite && (
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button onClick={() => {
-                    setEditingItem(null);
-                    setFormData({ nominal: '', keterangan: '' });
-                  }}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Tambah Pengeluaran
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-blue-600">
+                    <Filter className="h-4 w-4 mr-2 text-blue-500" />
+                    Filter
                   </Button>
-                </DialogTrigger>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="font-medium">Filter Data</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="month-filter">Bulan</Label>
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Semua Bulan" />
+                          </SelectTrigger>
+                          <SelectContent className="z-50 bg-white">
+                            <SelectItem value="all">Semua Bulan</SelectItem>
+                            {availableMonths?.map((month) => (
+                              <SelectItem key={month.value} value={month.value}>
+                                {month.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedMonth('all');
+                          setSearchTerm('');
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Reset
+                      </Button>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+              
+              <Button variant="outline" onClick={() => {}}>
+                <Download className="h-4 w-4 mr-2" />
+                Export Excel
+              </Button>
+              {canWrite && (
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setEditingItem(null);
+                      setFormData({ nominal: '', keterangan: '' });
+                    }}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Tambah Pengeluaran
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>
