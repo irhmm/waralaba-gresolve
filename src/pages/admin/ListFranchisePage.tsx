@@ -851,21 +851,20 @@ const ListFranchisePage = () => {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="flex gap-2">
                   <Button 
                     size="sm"
                     variant="outline" 
-                    className="col-span-2 min-h-[36px] text-xs"
+                    className="flex-1"
                     onClick={() => setAssignUserModal({ isOpen: true, franchise })}
                   >
-                    <UserPlus className="w-3 h-3 mr-1 flex-shrink-0" />
-                    <span className="truncate">Assign</span>
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Assign User
                   </Button>
                   
                   <Button 
                     size="sm"
                     variant="outline"
-                    className="min-h-[36px] aspect-square flex items-center justify-center p-0"
                     onClick={() => navigate(`/franchise/${franchise.slug}/dashboard`)}
                   >
                     <Eye className="w-4 h-4" />
@@ -874,22 +873,20 @@ const ListFranchisePage = () => {
                   <Button 
                     size="sm"
                     variant="outline"
-                    className="min-h-[36px] aspect-square flex items-center justify-center p-0"
                     onClick={() => handleEditFranchise(franchise)}
                   >
                     <Edit className="w-4 h-4" />
                   </Button>
+                  
+                  <Button 
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeleteFranchise(franchise)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
-                
-                <Button 
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleDeleteFranchise(franchise)}
-                  className="w-full text-destructive hover:text-destructive hover:bg-destructive/10 min-h-[36px] text-xs"
-                >
-                  <Trash2 className="w-3 h-3 mr-1 flex-shrink-0" />
-                  <span className="truncate">Delete Franchise</span>
-                </Button>
               </CardContent>
             </Card>
           ))}
