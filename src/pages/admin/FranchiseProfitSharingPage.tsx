@@ -148,7 +148,11 @@ export default function FranchiseProfitSharingPage() {
       const newShare = Math.round((args.monthlyRevenue * args.newPercentage) / 100);
       const { error } = await supabase
         .from('franchise_profit_sharing')
-        .update({ admin_percentage: args.newPercentage, share_nominal: newShare })
+        .update({ 
+          admin_percentage: args.newPercentage, 
+          franchise_percentage: 100 - args.newPercentage,
+          share_nominal: newShare 
+        })
         .eq('franchise_id', args.franchise_id)
         .eq('month_year', selectedMonth);
       if (error) throw error;
