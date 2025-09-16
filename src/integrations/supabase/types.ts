@@ -99,6 +99,9 @@ export type Database = {
           franchise_percentage: number
           id: string
           month_year: string
+          payment_status: string | null
+          share_nominal: number | null
+          total_revenue: number | null
           updated_at: string
         }
         Insert: {
@@ -109,6 +112,9 @@ export type Database = {
           franchise_percentage?: number
           id?: string
           month_year: string
+          payment_status?: string | null
+          share_nominal?: number | null
+          total_revenue?: number | null
           updated_at?: string
         }
         Update: {
@@ -119,6 +125,9 @@ export type Database = {
           franchise_percentage?: number
           id?: string
           month_year?: string
+          payment_status?: string | null
+          share_nominal?: number | null
+          total_revenue?: number | null
           updated_at?: string
         }
         Relationships: [

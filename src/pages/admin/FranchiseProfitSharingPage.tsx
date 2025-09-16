@@ -31,19 +31,18 @@ export default function FranchiseProfitSharingPage() {
   const { data: availableMonths = [] } = useQuery({
     queryKey: ["available-months"],
     queryFn: async () => {
-      const { data: adminIncome, error } = await supabase
-        .from("admin_income")
-        .select("tanggal")
-        .not("tanggal", "is", null)
-        .order("tanggal", { ascending: false });
+      const { data: profitSharing, error } = await supabase
+        .from("franchise_profit_sharing")
+        .select("month_year")
+        .not("month_year", "is", null)
+        .order("month_year", { ascending: false });
 
       if (error) throw error;
 
       const monthsSet = new Set<string>();
-      adminIncome?.forEach((income) => {
-        if (income.tanggal) {
-          const monthYear = format(new Date(income.tanggal), "yyyy-MM");
-          monthsSet.add(monthYear);
+      profitSharing?.forEach((item) => {
+        if (item.month_year) {
+          monthsSet.add(item.month_year);
         }
       });
 
@@ -57,47 +56,39 @@ export default function FranchiseProfitSharingPage() {
   const { data: profitSharingData = [] } = useQuery({
     queryKey: ["franchise-profit-sharing", selectedMonth],
     queryFn: async () => {
-      // Get all franchises with their revenue for the selected month
-      const { data: franchises, error: franchiseError } = await supabase
-        .from("franchises")
-        .select("id, name");
+      // Get franchise profit sharing data directly from franchise_profit_sharing table
+      const { data: profitSharingData, error } = await supabase
+        .from("franchise_profit_sharing")
+        .select(`
+          id,
+          franchise_id,
+          admin_percentage,
+          total_revenue,
+          share_nominal,
+          payment_status,
+          month_year,
+          franchises (
+            name
+          )
+        `)
+        .eq("month_year", selectedMonth);
 
-      if (franchiseError) throw franchiseError;
+      if (error) throw error;
 
-      const profitData: FranchiseProfitData[] = [];
+      const profitData: FranchiseProfitData[] = profitSharingData?.map((item) => {
+        // Calculate share_nominal if not stored, otherwise use stored value
+        const calculatedShareNominal = item.share_nominal || 
+          (item.total_revenue * item.admin_percentage) / 100;
 
-      for (const franchise of franchises) {
-        // Get monthly revenue from admin_income for this franchise
-        const { data: adminIncome, error: incomeError } = await supabase
-          .from("admin_income")
-          .select("nominal")
-          .eq("franchise_id", franchise.id)
-          .gte("tanggal", `${selectedMonth}-01`)
-          .lt("tanggal", `${selectedMonth}-32`);
-
-        if (incomeError) throw incomeError;
-
-        const monthlyRevenue = adminIncome?.reduce((sum, income) => sum + income.nominal, 0) || 0;
-
-        // Get profit sharing percentage
-        const { data: profitSharing } = await supabase
-          .rpc("get_franchise_profit_sharing", {
-            target_franchise_id: franchise.id,
-            target_month: selectedMonth
-          });
-
-        const adminPercentage = profitSharing?.[0]?.admin_percentage || 20;
-        const profitShareAmount = (monthlyRevenue * adminPercentage) / 100;
-
-        profitData.push({
-          franchise_id: franchise.id,
-          franchise_name: franchise.name,
-          monthly_revenue: monthlyRevenue,
-          admin_percentage: adminPercentage,
-          profit_share_amount: profitShareAmount,
-          payment_status: 'unpaid' // TODO: Implement payment status tracking
-        });
-      }
+        return {
+          franchise_id: item.franchise_id,
+          franchise_name: (item.franchises as any)?.name || "Unknown Franchise",
+          monthly_revenue: item.total_revenue || 0,
+          admin_percentage: item.admin_percentage,
+          profit_share_amount: calculatedShareNominal,
+          payment_status: item.payment_status as 'paid' | 'unpaid'
+        };
+      }) || [];
 
       return profitData;
     },
