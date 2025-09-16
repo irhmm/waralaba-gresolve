@@ -31,6 +31,11 @@ import {
 const menuItems = {
   super_admin: [
     {
+      title: 'Dashboard',
+      url: '/',
+      icon: BarChart3,
+    },
+    {
       title: 'List Franchise',
       url: '/admin/franchises',
       icon: Building2,
@@ -63,6 +68,11 @@ const menuItems = {
   ],
   franchise: [
     {
+      title: 'Dashboard',
+      url: '/',
+      icon: BarChart3,
+    },
+    {
       title: 'Pendapatan Worker',
       url: '/worker-income',
       icon: DollarSign,
@@ -94,6 +104,11 @@ const menuItems = {
     },
   ],
   admin_keuangan: [
+    {
+      title: 'Dashboard',
+      url: '/',
+      icon: BarChart3,
+    },
     {
       title: 'Pendapatan Worker',
       url: '/worker-income',

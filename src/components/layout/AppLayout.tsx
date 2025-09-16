@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
@@ -10,6 +10,7 @@ import { RefreshCw, LogOut } from 'lucide-react';
 const AppLayout = () => {
   const { user, loading, userRole, roleLoading, refreshRole, signOut } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -83,6 +84,16 @@ const AppLayout = () => {
         </div>
       </div>
     );
+  }
+
+  // Role-based redirection from root path
+  if (location.pathname === '/' && userRole) {
+    if (userRole.role === 'admin_marketing') {
+      return <Navigate to="/admin-income" replace />;
+    }
+    if (userRole.role === 'user') {
+      return <Navigate to="/worker-income" replace />;
+    }
   }
 
   return (
