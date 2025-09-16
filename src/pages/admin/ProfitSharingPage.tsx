@@ -3,10 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Settings, Save, Percent, Globe } from 'lucide-react';
+import { Settings, Save, Percent } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+
+interface GlobalProfitSettings {
+  admin_percentage: number;
+  franchise_percentage: number;
+}
 
 const ProfitSharingPage = () => {
   const [adminPercentage, setAdminPercentage] = useState<number>(20);
@@ -65,13 +70,17 @@ const ProfitSharingPage = () => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       
-      // Delete old settings first
-      await supabase.from('global_profit_settings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-      
-      // Insert new settings
+      // First, check if global settings exist
+      const { data: existingData } = await supabase
+        .from('global_profit_settings')
+        .select('id')
+        .limit(1);
+
+      // Update or insert global settings
       const { error } = await supabase
         .from('global_profit_settings')
-        .insert({
+        .upsert({
+          ...(existingData && existingData.length > 0 ? { id: existingData[0].id } : {}),
           admin_percentage: adminPercentage,
           franchise_percentage: franchisePercentage,
           created_by: userData.user?.id
@@ -97,31 +106,21 @@ const ProfitSharingPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Globe className="h-6 w-6 text-primary" />
+        <Settings className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold text-foreground">Pengaturan Bagi Hasil Global</h1>
       </div>
       
       <div className="bg-info/10 border border-info/20 rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <Settings className="h-5 w-5 text-info mt-0.5" />
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-info-foreground">
-              Pengaturan Global untuk Semua Franchise
-            </p>
-            <p className="text-xs text-info-foreground/80">
-              • Pengaturan ini berlaku untuk <strong>semua franchise</strong> tanpa kecuali<br/>
-              • Sekali mengubah persentase, semua franchise akan mengikuti pengaturan yang sama<br/>
-              • Berlaku untuk semua bulan dan tahun (masa lalu, sekarang, dan masa depan)
-            </p>
-          </div>
-        </div>
+        <p className="text-sm text-info-foreground">
+          ℹ️ Pengaturan ini akan berlaku untuk SEMUA franchise dan SEMUA bulan. Sekali mengubah persentase, maka akan langsung diterapkan pada semua perhitungan bagi hasil di seluruh sistem.
+        </p>
       </div>
 
       <Card className="border-border bg-card">
         <CardHeader className="border-b border-border">
           <CardTitle className="flex items-center gap-2 text-card-foreground">
             <Percent className="h-5 w-5 text-primary" />
-            Atur Persentase Bagi Hasil Global
+            Atur Persentase Global untuk Semua Franchise
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
@@ -138,14 +137,13 @@ const ProfitSharingPage = () => {
                   value={adminPercentage}
                   onChange={(e) => handleAdminPercentageChange(Number(e.target.value))}
                   className="text-lg font-semibold"
-                  disabled={loading}
                 />
               </div>
               <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-primary">{adminPercentage}%</div>
                   <div className="text-sm text-muted-foreground">Bagian Super Admin</div>
-                  <div className="text-xs text-muted-foreground mt-1">Berlaku untuk semua franchise</div>
+                  <div className="text-xs text-muted-foreground mt-1">untuk semua franchise</div>
                 </div>
               </div>
             </div>
@@ -161,14 +159,13 @@ const ProfitSharingPage = () => {
                   value={franchisePercentage}
                   onChange={(e) => handleFranchisePercentageChange(Number(e.target.value))}
                   className="text-lg font-semibold"
-                  disabled={loading}
                 />
               </div>
               <div className="p-4 bg-success/5 rounded-lg border border-success/10">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-success">{franchisePercentage}%</div>
                   <div className="text-sm text-muted-foreground">Bagian Franchise</div>
-                  <div className="text-xs text-muted-foreground mt-1">Berlaku untuk semua franchise</div>
+                  <div className="text-xs text-muted-foreground mt-1">untuk semua franchise</div>
                 </div>
               </div>
             </div>
@@ -177,12 +174,12 @@ const ProfitSharingPage = () => {
           {/* Summary */}
           <div className="p-4 bg-muted/30 rounded-lg border border-border">
             <div className="text-center space-y-2">
-              <div className="text-sm text-muted-foreground">Pengaturan Global Aktif</div>
+              <div className="text-sm text-muted-foreground">Pengaturan Global untuk Semua Franchise</div>
               <div className="text-lg font-bold text-foreground">
-                Super Admin: {adminPercentage}% | Semua Franchise: {franchisePercentage}%
+                Super Admin: {adminPercentage}% | Franchise: {franchisePercentage}%
               </div>
               <div className="text-xs text-muted-foreground">
-                Persentase ini akan diterapkan pada <strong>SEMUA</strong> franchise dan perhitungan bagi hasil
+                Persentase ini akan diterapkan pada semua franchise (A, B, C, dll.) untuk semua perhitungan bagi hasil
               </div>
               {adminPercentage + franchisePercentage !== 100 && (
                 <div className="text-sm text-destructive">
@@ -204,19 +201,16 @@ const ProfitSharingPage = () => {
             </Button>
           </div>
 
-          {/* Warning */}
+          {/* Info Box */}
           <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <div className="text-warning text-lg">⚠️</div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-warning-foreground">
-                  Perhatian: Pengaturan Global
-                </p>
-                <p className="text-xs text-warning-foreground/80">
-                  Sekali Anda menyimpan pengaturan ini, <strong>SEMUA franchise</strong> akan menggunakan persentase yang sama. 
-                  Tidak ada pengaturan individual per franchise lagi.
-                </p>
-              </div>
+            <div className="text-sm text-warning-foreground">
+              <strong>Contoh:</strong> Jika Anda set 20:80, maka:
+              <ul className="list-disc list-inside mt-2 space-y-1">
+                <li>Franchise A akan mendapat 80% dari pendapatannya</li>
+                <li>Franchise B akan mendapat 80% dari pendapatannya</li>
+                <li>Franchise C akan mendapat 80% dari pendapatannya</li>
+                <li>Super Admin mendapat 20% dari semua franchise</li>
+              </ul>
             </div>
           </div>
         </CardContent>
