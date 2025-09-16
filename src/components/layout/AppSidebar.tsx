@@ -163,6 +163,11 @@ const menuItems = {
       url: '/',
       icon: BarChart3,
     },
+    {
+      title: 'Pendapatan Worker',
+      url: '/worker-income',
+      icon: DollarSign,
+    },
   ],
 };
 
