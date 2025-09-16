@@ -53,11 +53,6 @@ const menuItems = {
       url: '/admin/franchise-profit-sharing',
       icon: TrendingUp,
     },
-    {
-      title: 'User Management',
-      url: '/users',
-      icon: Users,
-    },
   ],
   franchise: [
     {
