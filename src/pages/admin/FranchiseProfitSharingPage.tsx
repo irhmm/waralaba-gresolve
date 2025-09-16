@@ -27,22 +27,23 @@ export default function FranchiseProfitSharingPage() {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
   const [monthSearchOpen, setMonthSearchOpen] = useState(false);
 
-  // Get available months that have data
+  // Get available months that have data from admin_income
   const { data: availableMonths = [] } = useQuery({
     queryKey: ["available-months"],
     queryFn: async () => {
-      const { data: profitSharing, error } = await supabase
-        .from("franchise_profit_sharing")
-        .select("month_year")
-        .not("month_year", "is", null)
-        .order("month_year", { ascending: false });
+      const { data: adminIncome, error } = await supabase
+        .from("admin_income")
+        .select("tanggal")
+        .not("tanggal", "is", null)
+        .order("tanggal", { ascending: false });
 
       if (error) throw error;
 
       const monthsSet = new Set<string>();
-      profitSharing?.forEach((item) => {
-        if (item.month_year) {
-          monthsSet.add(item.month_year);
+      adminIncome?.forEach((income) => {
+        if (income.tanggal) {
+          const monthYear = format(new Date(income.tanggal), "yyyy-MM");
+          monthsSet.add(monthYear);
         }
       });
 
@@ -56,39 +57,58 @@ export default function FranchiseProfitSharingPage() {
   const { data: profitSharingData = [] } = useQuery({
     queryKey: ["franchise-profit-sharing", selectedMonth],
     queryFn: async () => {
-      // Get franchise profit sharing data directly from franchise_profit_sharing table
-      const { data: profitSharingData, error } = await supabase
-        .from("franchise_profit_sharing")
-        .select(`
-          id,
-          franchise_id,
-          admin_percentage,
-          total_revenue,
-          share_nominal,
-          payment_status,
-          month_year,
-          franchises (
-            name
-          )
-        `)
-        .eq("month_year", selectedMonth);
+      // Get all franchises
+      const { data: franchises, error: franchiseError } = await supabase
+        .from("franchises")
+        .select("id, name");
 
-      if (error) throw error;
+      if (franchiseError) throw franchiseError;
 
-      const profitData: FranchiseProfitData[] = profitSharingData?.map((item) => {
-        // Calculate share_nominal if not stored, otherwise use stored value
-        const calculatedShareNominal = item.share_nominal || 
-          (item.total_revenue * item.admin_percentage) / 100;
+      const profitData: FranchiseProfitData[] = [];
 
-        return {
-          franchise_id: item.franchise_id,
-          franchise_name: (item.franchises as any)?.name || "Unknown Franchise",
-          monthly_revenue: item.total_revenue || 0,
-          admin_percentage: item.admin_percentage,
-          profit_share_amount: calculatedShareNominal,
-          payment_status: item.payment_status as 'paid' | 'unpaid'
-        };
-      }) || [];
+      for (const franchise of franchises) {
+        // Get monthly revenue from admin_income for this franchise
+        const startDate = `${selectedMonth}-01`;
+        const endDate = `${selectedMonth}-31`;
+        
+        const { data: adminIncome, error: incomeError } = await supabase
+          .from("admin_income")
+          .select("nominal")
+          .eq("franchise_id", franchise.id)
+          .gte("tanggal", startDate)
+          .lte("tanggal", endDate);
+
+        if (incomeError) throw incomeError;
+
+        const monthlyRevenue = adminIncome?.reduce((sum, income) => sum + income.nominal, 0) || 0;
+
+        // Check if there's existing profit sharing data for this franchise and month
+        const { data: existingProfitSharing } = await supabase
+          .from("franchise_profit_sharing")
+          .select("admin_percentage, share_nominal, payment_status")
+          .eq("franchise_id", franchise.id)
+          .eq("month_year", selectedMonth)
+          .maybeSingle();
+
+        let adminPercentage = 20; // default
+        let paymentStatus: 'paid' | 'unpaid' = 'unpaid';
+
+        if (existingProfitSharing) {
+          adminPercentage = existingProfitSharing.admin_percentage;
+          paymentStatus = existingProfitSharing.payment_status as 'paid' | 'unpaid';
+        }
+
+        const profitShareAmount = (monthlyRevenue * adminPercentage) / 100;
+
+        profitData.push({
+          franchise_id: franchise.id,
+          franchise_name: franchise.name,
+          monthly_revenue: monthlyRevenue,
+          admin_percentage: adminPercentage,
+          profit_share_amount: profitShareAmount,
+          payment_status: paymentStatus
+        });
+      }
 
       return profitData;
     },
