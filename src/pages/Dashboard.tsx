@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { format } from 'date-fns';
+import { format, subMonths, startOfMonth } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
 import { exportToExcel } from '@/utils/excelUtils';
 import { 
@@ -47,6 +49,15 @@ interface MonthlySummary {
   profitSharing?: number;
 }
 
+interface ChartData {
+  month: string;
+  monthLabel: string;
+  adminIncome: number;
+  workerIncome: number;
+  expenses: number;
+  omset: number;
+}
+
 const Dashboard = () => {
   const { userRole, user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({});
@@ -56,10 +67,14 @@ const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [chartData, setChartData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     fetchDashboardStats();
     fetchMonthlySummary();
+    if (userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') {
+      fetchChartData();
+    }
   }, [userRole]);
 
   const fetchDashboardStats = async () => {
@@ -322,6 +337,80 @@ const Dashboard = () => {
     }
   };
 
+  const fetchChartData = async () => {
+    if (!userRole?.franchise_id) return;
+
+    try {
+      const franchiseId = userRole.franchise_id;
+      const currentDate = new Date();
+      const months: ChartData[] = [];
+
+      // Generate data for the last 12 months
+      for (let i = 11; i >= 0; i--) {
+        const targetDate = subMonths(currentDate, i);
+        const monthStart = startOfMonth(targetDate);
+        const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
+        const monthKey = format(targetDate, 'yyyy-MM');
+
+        // Fetch admin income for this month
+        const { data: adminIncome } = await supabase
+          .from('admin_income')
+          .select('nominal')
+          .eq('franchise_id', franchiseId)
+          .gte('tanggal', monthStart.toISOString())
+          .lte('tanggal', monthEnd.toISOString());
+
+        // Fetch worker income for this month
+        const { data: workerIncome } = await supabase
+          .from('worker_income')
+          .select('fee')
+          .eq('franchise_id', franchiseId)
+          .gte('tanggal', monthStart.toISOString())
+          .lte('tanggal', monthEnd.toISOString());
+
+        // Fetch expenses for this month
+        const { data: expenses } = await supabase
+          .from('expenses')
+          .select('nominal')
+          .eq('franchise_id', franchiseId)
+          .gte('tanggal', monthStart.toISOString())
+          .lte('tanggal', monthEnd.toISOString());
+
+        // Calculate totals
+        const adminTotal = adminIncome?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+        const workerTotal = workerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
+        const expensesTotal = expenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+
+        // Get profit sharing for this month
+        const { data: profitSharing } = await supabase
+          .rpc('get_franchise_profit_sharing', {
+            target_franchise_id: franchiseId,
+            target_month: monthKey
+          });
+
+        const totalRevenue = adminTotal + workerTotal;
+        const profitShareAmount = profitSharing && profitSharing.length > 0 
+          ? totalRevenue * (profitSharing[0].admin_percentage / 100) 
+          : totalRevenue * 0.2; // default 20%
+
+        const omset = totalRevenue - expensesTotal - profitShareAmount;
+
+        months.push({
+          month: monthKey,
+          monthLabel: format(targetDate, 'MMM yyyy'),
+          adminIncome: adminTotal,
+          workerIncome: workerTotal,
+          expenses: expensesTotal,
+          omset: Math.max(0, omset) // Ensure omset doesn't go negative
+        });
+      }
+
+      setChartData(months);
+    } catch (error) {
+      console.error('Error fetching chart data:', error);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -339,6 +428,22 @@ const Dashboard = () => {
       user: 'User'
     };
     return roleNames[role as keyof typeof roleNames] || role;
+  };
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900 mb-2">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
   };
 
   const handleExportSummary = () => {
@@ -627,6 +732,85 @@ const Dashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Financial Chart for Franchise and Admin Keuangan */}
+      {(userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') && (
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5" />
+              Grafik Keuangan (12 Bulan Terakhir)
+            </CardTitle>
+            <CardDescription>
+              Tren pendapatan, pengeluaran, dan omset franchise dalam 1 tahun terakhir
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-96 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="monthLabel" 
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    stroke="#6b7280"
+                    tickFormatter={(value) => {
+                      if (value >= 1000000) return `${(value / 1000000).toFixed(0)}M`;
+                      if (value >= 1000) return `${(value / 1000).toFixed(0)}K`;
+                      return value.toString();
+                    }}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend 
+                    wrapperStyle={{ paddingTop: '20px' }}
+                    iconType="line"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="adminIncome" 
+                    stroke="#3b82f6" 
+                    strokeWidth={3}
+                    name="Pendapatan Admin"
+                    dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#3b82f6' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="workerIncome" 
+                    stroke="#10b981" 
+                    strokeWidth={3}
+                    name="Pendapatan Worker"
+                    dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#10b981' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="expenses" 
+                    stroke="#ef4444" 
+                    strokeWidth={3}
+                    name="Pengeluaran"
+                    dot={{ fill: '#ef4444', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#ef4444' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="omset" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={3}
+                    name="Omset"
+                    dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#8b5cf6' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Monthly Summary Table */}
       {shouldShowTable && (
