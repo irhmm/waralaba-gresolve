@@ -392,28 +392,31 @@ const Dashboard = () => {
         const workerTotal = workerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
         const expensesTotal = expenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
 
-        // Get profit sharing for this month
-        const { data: profitSharing } = await supabase
-          .rpc('get_franchise_profit_sharing', {
-            target_franchise_id: franchiseId,
-            target_month: monthKey
+        // Only include months that have data
+        if (adminTotal > 0 || workerTotal > 0 || expensesTotal > 0) {
+          // Get profit sharing for this month
+          const { data: profitSharing } = await supabase
+            .rpc('get_franchise_profit_sharing', {
+              target_franchise_id: franchiseId,
+              target_month: monthKey
+            });
+
+          const totalRevenue = adminTotal + workerTotal;
+          const profitShareAmount = profitSharing && profitSharing.length > 0 
+            ? totalRevenue * (profitSharing[0].admin_percentage / 100) 
+            : totalRevenue * 0.2; // default 20%
+
+          const omset = totalRevenue - expensesTotal - profitShareAmount;
+
+          months.push({
+            month: monthKey,
+            monthLabel: format(targetDate, 'MMM yyyy'),
+            adminIncome: adminTotal,
+            workerIncome: workerTotal,
+            expenses: expensesTotal,
+            omset: Math.max(0, omset) // Ensure omset doesn't go negative
           });
-
-        const totalRevenue = adminTotal + workerTotal;
-        const profitShareAmount = profitSharing && profitSharing.length > 0 
-          ? totalRevenue * (profitSharing[0].admin_percentage / 100) 
-          : totalRevenue * 0.2; // default 20%
-
-        const omset = totalRevenue - expensesTotal - profitShareAmount;
-
-        months.push({
-          month: monthKey,
-          monthLabel: format(targetDate, 'MMM yyyy'),
-          adminIncome: adminTotal,
-          workerIncome: workerTotal,
-          expenses: expensesTotal,
-          omset: Math.max(0, omset) // Ensure omset doesn't go negative
-        });
+        }
       }
 
       setChartData(months);
@@ -457,6 +460,8 @@ const Dashboard = () => {
           monthLabel: format(targetDate, 'MMM yyyy')
         };
 
+        let hasData = false;
+
         // Get profit sharing data for each franchise for this month
         for (const franchise of franchises) {
           const { data: profitSharingData } = await supabase
@@ -466,10 +471,18 @@ const Dashboard = () => {
             .eq('month_year', monthKey)
             .maybeSingle();
 
-          monthData[franchise.name] = profitSharingData?.share_nominal || 0;
+          const shareAmount = profitSharingData?.share_nominal || 0;
+          monthData[franchise.name] = shareAmount;
+          
+          if (shareAmount > 0) {
+            hasData = true;
+          }
         }
 
-        months.push(monthData);
+        // Only include months that have data
+        if (hasData) {
+          months.push(monthData);
+        }
       }
 
       setProfitSharingChartData(months);
