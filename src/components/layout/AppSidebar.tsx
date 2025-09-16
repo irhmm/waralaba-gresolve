@@ -61,8 +61,8 @@ const menuItems = {
       icon: Users,
     },
     {
-      title: 'Laporan Global',
-      url: '/reports',
+      title: 'Laporan Keuangan',
+      url: '/financial-report',
       icon: FileText,
     },
   ],
@@ -98,8 +98,8 @@ const menuItems = {
       icon: Wallet,
     },
     {
-      title: 'Laporan',
-      url: '/reports',
+      title: 'Laporan Keuangan',
+      url: '/financial-report',
       icon: FileText,
     },
   ],
@@ -138,6 +138,11 @@ const menuItems = {
       title: 'Rekap Gaji',
       url: '/salary-recap',
       icon: Receipt,
+    },
+    {
+      title: 'Laporan Keuangan',
+      url: '/financial-report',
+      icon: FileText,
     },
   ],
   admin_marketing: [
