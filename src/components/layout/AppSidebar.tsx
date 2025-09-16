@@ -58,11 +58,6 @@ const menuItems = {
       url: '/users',
       icon: Users,
     },
-    {
-      title: 'Laporan Keuangan',
-      url: '/financial-report',
-      icon: FileText,
-    },
   ],
   franchise: [
     {
@@ -90,11 +85,6 @@ const menuItems = {
       url: '/workers',
       icon: UserCheck,
     },
-    {
-      title: 'Laporan Keuangan',
-      url: '/financial-report',
-      icon: FileText,
-    },
   ],
   admin_keuangan: [
     {
@@ -121,11 +111,6 @@ const menuItems = {
       title: 'Data Worker',
       url: '/workers',
       icon: UserCheck,
-    },
-    {
-      title: 'Laporan Keuangan',
-      url: '/financial-report',
-      icon: FileText,
     },
   ],
   admin_marketing: [

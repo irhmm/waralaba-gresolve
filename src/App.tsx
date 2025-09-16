@@ -18,7 +18,6 @@ import AdminIncomePage from "./pages/AdminIncomePage";
 import WorkerIncomePage from "./pages/WorkerIncomePage";
 import ExpensesPage from "./pages/ExpensesPage";
 import WorkersPage from "./pages/WorkersPage";
-import FinancialReportPage from "./pages/FinancialReportPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,7 +43,6 @@ const App = () => (
               <Route path="worker-income" element={<RouteGuard><WorkerIncomePage /></RouteGuard>} />
               <Route path="expenses" element={<RouteGuard><ExpensesPage /></RouteGuard>} />
               <Route path="workers" element={<RouteGuard><WorkersPage /></RouteGuard>} />
-              <Route path="financial-report" element={<RouteGuard><FinancialReportPage /></RouteGuard>} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
