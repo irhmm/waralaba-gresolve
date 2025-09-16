@@ -685,53 +685,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Quick Actions */}
-      <Card className="card-hover">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5" />
-            Ringkasan Bulan Ini
-          </CardTitle>
-          <CardDescription>
-            Performa keuangan franchise untuk bulan {new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            {userRole?.role !== 'super_admin' && (
-              <>
-                <div className="text-center p-4 bg-secondary/20 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">
-                    {formatCurrency((stats.thisMonthWorkerIncome || 0) + (stats.thisMonthAdminIncome || 0))}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Total Pendapatan</p>
-                </div>
-                <div className="text-center p-4 bg-destructive/10 rounded-lg">
-                  <div className="text-2xl font-bold text-destructive">
-                    {formatCurrency(stats.thisMonthExpenses || 0)}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Total Pengeluaran</p>
-                </div>
-                <div className="text-center p-4 bg-success/10 rounded-lg">
-                  <div className="text-2xl font-bold text-success">
-                    {formatCurrency(((stats.thisMonthWorkerIncome || 0) + (stats.thisMonthAdminIncome || 0)) - (stats.thisMonthExpenses || 0))}
-                  </div>
-                  <p className="text-sm text-muted-foreground">Keuntungan Bersih</p>
-                </div>
-              </>
-            )}
-            {userRole?.role === 'super_admin' && (
-              <div className="col-span-3 text-center p-8">
-                <Building2 className="w-12 h-12 mx-auto mb-4 text-primary" />
-                <h3 className="text-lg font-semibold mb-2">Management Franchise</h3>
-                <p className="text-muted-foreground">
-                  Kelola semua franchise dari dashboard ini. Lihat laporan global dan atur user access.
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Financial Chart for Franchise and Admin Keuangan */}
       {(userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') && (
