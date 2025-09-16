@@ -12,6 +12,7 @@ import { Search, Filter, Download, Check, ChevronsUpDown } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface FranchiseProfitData {
   franchise_id: string;
@@ -26,53 +27,78 @@ export default function FranchiseProfitSharingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
   const [monthSearchOpen, setMonthSearchOpen] = useState(false);
+  const { toast } = useToast();
 
-  // Get available months that have data from admin_income
+  // Get available months that have data from franchise_profit_sharing
   const { data: availableMonths = [] } = useQuery({
-    queryKey: ["available-months"],
+    queryKey: ["franchise-profit-sharing-months"],
     queryFn: async () => {
-      const { data: adminIncome, error } = await supabase
-        .from("admin_income")
-        .select("tanggal")
-        .not("tanggal", "is", null)
-        .order("tanggal", { ascending: false });
+      const { data, error } = await supabase
+        .from("franchise_profit_sharing")
+        .select("month_year")
+        .not("month_year", "is", null)
+        .order("month_year", { ascending: false });
 
       if (error) throw error;
 
       const monthsSet = new Set<string>();
-      adminIncome?.forEach((income) => {
-        if (income.tanggal) {
-          const monthYear = format(new Date(income.tanggal), "yyyy-MM");
-          monthsSet.add(monthYear);
+      data?.forEach((item) => {
+        if (item.month_year) {
+          monthsSet.add(item.month_year);
         }
       });
 
-      return Array.from(monthsSet).map(monthYear => ({
+      const months = Array.from(monthsSet).map(monthYear => ({
         value: monthYear,
         label: format(new Date(monthYear + "-01"), "MMMM yyyy")
       })).sort((a, b) => b.value.localeCompare(a.value));
+
+      // If no months found, still allow current month to be selected
+      if (months.length === 0) {
+        const currentMonth = format(new Date(), "yyyy-MM");
+        return [{
+          value: currentMonth,
+          label: format(new Date(currentMonth + "-01"), "MMMM yyyy")
+        }];
+      }
+
+      return months;
     },
   });
 
-  const { data: profitSharingData = [] } = useQuery({
+  const { data: profitSharingData = [], isLoading } = useQuery({
     queryKey: ["franchise-profit-sharing", selectedMonth],
     queryFn: async () => {
-      // Use the database function to get calculated profit sharing data
-      const { data, error } = await supabase.rpc('get_franchise_profit_sharing_data', {
-        target_month_year: selectedMonth
-      });
+      try {
+        // Use the database function to get calculated profit sharing data
+        const { data, error } = await supabase.rpc('get_franchise_profit_sharing_data', {
+          target_month_year: selectedMonth
+        });
 
-      if (error) throw error;
+        if (error) {
+          console.error("RPC Error:", error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch profit sharing data: " + error.message,
+            variant: "destructive",
+          });
+          throw error;
+        }
 
-      return data?.map((item: any) => ({
-        franchise_id: item.franchise_id,
-        franchise_name: item.franchise_name,
-        monthly_revenue: item.total_revenue,
-        admin_percentage: item.admin_percentage,
-        profit_share_amount: item.share_nominal,
-        payment_status: item.payment_status as 'paid' | 'unpaid'
-      })) || [];
+        return data?.map((item: any) => ({
+          franchise_id: item.franchise_id,
+          franchise_name: item.franchise_name,
+          monthly_revenue: item.total_revenue || 0,
+          admin_percentage: item.admin_percentage || 20,
+          profit_share_amount: item.share_nominal || (item.total_revenue * item.admin_percentage / 100) || 0,
+          payment_status: item.payment_status as 'paid' | 'unpaid'
+        })) || [];
+      } catch (error) {
+        console.error("Query Error:", error);
+        return [];
+      }
     },
+    enabled: !!selectedMonth,
   });
 
   const filteredData = profitSharingData.filter(item =>
@@ -93,7 +119,10 @@ export default function FranchiseProfitSharingPage() {
     }));
 
     // TODO: Implement Excel export functionality
-    toast.success("Export Excel akan segera tersedia");
+    toast({
+      title: "Export Excel",
+      description: "Export Excel akan segera tersedia",
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -235,8 +264,14 @@ export default function FranchiseProfitSharingPage() {
                   <TableHead className="text-center">Status Pembayaran</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {filteredData.length === 0 ? (
+                <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                      Loading data...
+                    </TableCell>
+                  </TableRow>
+                ) : filteredData.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                       Tidak ada data bagi hasil untuk bulan ini
