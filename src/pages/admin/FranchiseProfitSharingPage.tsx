@@ -211,6 +211,20 @@ export default function FranchiseProfitSharingPage() {
         <h1 className="text-3xl font-bold">Bagi Hasil Franchise</h1>
       </div>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Informasi Kalkulasi</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 text-sm text-muted-foreground">
+            <p>• Total Pendapatan = Pendapatan Admin + Pendapatan Worker</p>
+            <p>• Nominal Bagi Hasil = Total Pendapatan × Persentase Admin</p>
+            <p>• Persentase dapat diatur di halaman "Pengaturan Bagi Hasil"</p>
+            <p>• Klik "Hitung Ulang" untuk memperbarui data berdasarkan transaksi terbaru</p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
@@ -322,8 +336,9 @@ export default function FranchiseProfitSharingPage() {
                 variant="secondary"
                 onClick={() => recalcMutation.mutate()}
                 className="hover:opacity-90"
+                title="Menghitung ulang total pendapatan dan nominal bagi hasil berdasarkan data admin_income + worker_income terbaru"
               >
-                Hitung Ulang
+                Hitung Ulang Data
               </Button>
               <Button onClick={exportToExcel} className="bg-primary hover:bg-primary/90">
                 <Download className="mr-2 h-4 w-4" />
@@ -339,9 +354,9 @@ export default function FranchiseProfitSharingPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nama Franchise</TableHead>
-                  <TableHead className="text-right">Total Pendapatan</TableHead>
-                  <TableHead className="text-center">Persentase (%)</TableHead>
-                  <TableHead className="text-right">Nominal Bagi Hasil</TableHead>
+                  <TableHead className="text-right">Total Pendapatan (Admin + Worker)</TableHead>
+                  <TableHead className="text-center">Persentase Admin (%)</TableHead>
+                  <TableHead className="text-right">Nominal Bagi Hasil Admin</TableHead>
                   <TableHead className="text-center">Status Pembayaran</TableHead>
                   <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
