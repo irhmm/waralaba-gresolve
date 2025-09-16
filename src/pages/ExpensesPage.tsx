@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MonthSelector } from '@/components/ui/month-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -253,20 +254,15 @@ export default function ExpensesPage() {
                     
                     <div className="space-y-3">
                       <div>
-                        <Label htmlFor="month-filter">Bulan</Label>
-                        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Semua Bulan" />
-                          </SelectTrigger>
-                          <SelectContent className="z-50 bg-white">
-                            <SelectItem value="all">Semua Bulan</SelectItem>
-                            {availableMonths?.map((month) => (
-                              <SelectItem key={month.value} value={month.value}>
-                                {month.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <MonthSelector
+                          value={selectedMonth}
+                          onValueChange={setSelectedMonth}
+                          tables={['expenses']}
+                          label="Bulan"
+                          placeholder="Semua Bulan"
+                          showSearch={true}
+                          includeAll={true}
+                        />
                       </div>
                     </div>
                     

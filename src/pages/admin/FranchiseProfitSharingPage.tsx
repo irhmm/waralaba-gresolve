@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MonthSelector } from '@/components/ui/month-selector';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -309,50 +310,14 @@ export default function FranchiseProfitSharingPage() {
               
               <div className="flex gap-2 items-center">
                 <Filter className="h-4 w-4 text-primary" />
-                <Popover open={monthSearchOpen} onOpenChange={setMonthSearchOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={monthSearchOpen}
-                      className="w-48 justify-between"
-                    >
-                      {selectedMonth
-                        ? availableMonths.find((month) => month.value === selectedMonth)?.label
-                        : "Pilih bulan..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48 p-0 bg-background border shadow-md z-50">
-                    <Command>
-                      <CommandInput placeholder="Cari bulan..." className="h-9" />
-                      <CommandList>
-                        <CommandEmpty>Tidak ada bulan ditemukan.</CommandEmpty>
-                        <CommandGroup>
-                          {availableMonths.map((month) => (
-                            <CommandItem
-                              key={month.value}
-                              value={month.label}
-                              onSelect={() => {
-                                setSelectedMonth(month.value);
-                                setMonthSearchOpen(false);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedMonth === month.value ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {month.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <MonthSelector
+                  value={selectedMonth}
+                  onValueChange={setSelectedMonth}
+                  tables={['franchise_profit_sharing']}
+                  label=""
+                  placeholder="Pilih bulan..."
+                  showSearch={true}
+                />
               </div>
             </div>
 

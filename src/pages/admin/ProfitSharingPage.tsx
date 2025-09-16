@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MonthSelector } from '@/components/ui/month-selector';
 import { Settings, Save, Percent } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -147,19 +148,6 @@ const ProfitSharingPage = () => {
     }
   };
 
-  const generateMonthOptions = () => {
-    const options = [];
-    const currentDate = new Date();
-    
-    for (let i = -6; i <= 6; i++) {
-      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
-      const value = format(date, 'yyyy-MM');
-      const label = format(date, 'MMMM yyyy');
-      options.push({ value, label });
-    }
-    
-    return options;
-  };
 
   return (
     <div className="space-y-6">
@@ -194,21 +182,14 @@ const ProfitSharingPage = () => {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="month">Pilih Bulan</Label>
-              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih bulan..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {generateMonthOptions().map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <MonthSelector
+              value={selectedMonth}
+              onValueChange={setSelectedMonth}
+              tables={['franchise_profit_sharing']}
+              label="Pilih Bulan"
+              placeholder="Pilih bulan..."
+              showSearch={true}
+            />
           </div>
 
           {/* Percentage Settings */}
