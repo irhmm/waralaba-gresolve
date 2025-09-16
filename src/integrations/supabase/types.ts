@@ -383,6 +383,17 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_franchise_profit_sharing: {
+        Args: { target_month_year?: string }
+        Returns: {
+          admin_percentage: number
+          franchise_id: string
+          franchise_name: string
+          payment_status: string
+          share_nominal: number
+          total_revenue: number
+        }[]
+      }
       ensure_default_user_role: {
         Args: { target_user_id?: string }
         Returns: Json
@@ -397,6 +408,17 @@ export type Database = {
           admin_percentage: number
           franchise_percentage: number
           month_year: string
+        }[]
+      }
+      get_franchise_profit_sharing_data: {
+        Args: { target_month_year?: string }
+        Returns: {
+          admin_percentage: number
+          franchise_id: string
+          franchise_name: string
+          payment_status: string
+          share_nominal: number
+          total_revenue: number
         }[]
       }
       get_user_franchise_id: {

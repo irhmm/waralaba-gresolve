@@ -57,60 +57,21 @@ export default function FranchiseProfitSharingPage() {
   const { data: profitSharingData = [] } = useQuery({
     queryKey: ["franchise-profit-sharing", selectedMonth],
     queryFn: async () => {
-      // Get all franchises
-      const { data: franchises, error: franchiseError } = await supabase
-        .from("franchises")
-        .select("id, name");
+      // Use the database function to get calculated profit sharing data
+      const { data, error } = await supabase.rpc('get_franchise_profit_sharing_data', {
+        target_month_year: selectedMonth
+      });
 
-      if (franchiseError) throw franchiseError;
+      if (error) throw error;
 
-      const profitData: FranchiseProfitData[] = [];
-
-      for (const franchise of franchises) {
-        // Get monthly revenue from admin_income for this franchise
-        const startDate = `${selectedMonth}-01`;
-        const endDate = `${selectedMonth}-31`;
-        
-        const { data: adminIncome, error: incomeError } = await supabase
-          .from("admin_income")
-          .select("nominal")
-          .eq("franchise_id", franchise.id)
-          .gte("tanggal", startDate)
-          .lte("tanggal", endDate);
-
-        if (incomeError) throw incomeError;
-
-        const monthlyRevenue = adminIncome?.reduce((sum, income) => sum + income.nominal, 0) || 0;
-
-        // Check if there's existing profit sharing data for this franchise and month
-        const { data: existingProfitSharing } = await supabase
-          .from("franchise_profit_sharing")
-          .select("admin_percentage, share_nominal, payment_status")
-          .eq("franchise_id", franchise.id)
-          .eq("month_year", selectedMonth)
-          .maybeSingle();
-
-        let adminPercentage = 20; // default
-        let paymentStatus: 'paid' | 'unpaid' = 'unpaid';
-
-        if (existingProfitSharing) {
-          adminPercentage = existingProfitSharing.admin_percentage;
-          paymentStatus = existingProfitSharing.payment_status as 'paid' | 'unpaid';
-        }
-
-        const profitShareAmount = (monthlyRevenue * adminPercentage) / 100;
-
-        profitData.push({
-          franchise_id: franchise.id,
-          franchise_name: franchise.name,
-          monthly_revenue: monthlyRevenue,
-          admin_percentage: adminPercentage,
-          profit_share_amount: profitShareAmount,
-          payment_status: paymentStatus
-        });
-      }
-
-      return profitData;
+      return data?.map((item: any) => ({
+        franchise_id: item.franchise_id,
+        franchise_name: item.franchise_name,
+        monthly_revenue: item.total_revenue,
+        admin_percentage: item.admin_percentage,
+        profit_share_amount: item.share_nominal,
+        payment_status: item.payment_status as 'paid' | 'unpaid'
+      })) || [];
     },
   });
 
