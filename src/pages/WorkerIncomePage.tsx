@@ -410,12 +410,10 @@ export default function WorkerIncomePage() {
                 </PopoverContent>
               </Popover>
               
-              {!isUser && (
-                <Button variant="outline" onClick={handleExport} className="text-blue-600">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-              )}
+              <Button variant="outline" onClick={handleExport} className="text-blue-600">
+                <Download className="h-4 w-4" />
+                Export
+              </Button>
               
               {canWrite && !isUser && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
