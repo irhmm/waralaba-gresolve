@@ -422,27 +422,29 @@ export default function FranchiseProfitSharingPage() {
                           {item.payment_status === 'paid' ? 'Sudah Dibayar' : 'Belum Dibayar'}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => openEditModal(item)}
-                          className="h-8 w-8 p-0 hover:bg-primary/10"
-                        >
-                          <Edit className="h-4 w-4 text-primary" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            if (confirm('Hapus data bagi hasil ini?')) {
-                              deleteRow.mutate({ franchise_id: item.franchise_id });
-                            }
-                          }}
-                          className="h-8 w-8 p-0 hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => openEditModal(item)}
+                            className="h-8 w-8 p-0 hover:bg-primary/10"
+                          >
+                            <Edit className="h-4 w-4 text-primary" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              if (confirm('Hapus data bagi hasil ini?')) {
+                                deleteRow.mutate({ franchise_id: item.franchise_id });
+                              }
+                            }}
+                            className="h-8 w-8 p-0 hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
