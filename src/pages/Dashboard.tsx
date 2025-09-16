@@ -28,6 +28,8 @@ interface DashboardStats {
   thisMonthExpenses?: number;
   profitSharingPercentage?: number;
   adminProfitShare?: number;
+  thisMonthProfitSharing?: number;
+  thisMonthTotalExpenses?: number;
 }
 
 const Dashboard = () => {
@@ -77,6 +79,22 @@ const Dashboard = () => {
           .from('workers')
           .select('id');
         newStats.totalWorkers = workers?.length || 0;
+
+        // Fetch current month profit sharing from all franchises
+        const currentMonthYear = format(new Date(), 'yyyy-MM');
+        const { data: profitSharing } = await supabase
+          .from('franchise_profit_sharing')
+          .select('share_nominal')
+          .eq('month_year', currentMonthYear);
+        newStats.thisMonthProfitSharing = profitSharing?.reduce((sum, item) => sum + Number(item.share_nominal), 0) || 0;
+
+        // Fetch current month expenses from all franchises
+        const { data: thisMonthExpenses } = await supabase
+          .from('expenses')
+          .select('nominal, tanggal')
+          .gte('tanggal', startOfMonth.toISOString())
+          .lt('tanggal', endOfMonth.toISOString());
+        newStats.thisMonthTotalExpenses = thisMonthExpenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
       } else {
         // Franchise-scoped stats
         const franchiseId = userRole.franchise_id;
@@ -217,7 +235,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {userRole?.role === 'super_admin' ? (
           <>
             <Card className="card-hover">
@@ -261,6 +279,28 @@ const Dashboard = () => {
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalWorkers || 0}</div>
                 <p className="text-xs text-muted-foreground">Worker aktif</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Bagi Hasil (Bulan Ini)</CardTitle>
+                <Percent className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.thisMonthProfitSharing || 0)}</div>
+                <p className="text-xs text-muted-foreground">Berdasarkan seluruh franchise</p>
+              </CardContent>
+            </Card>
+
+            <Card className="card-hover">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Pengeluaran (Bulan Ini)</CardTitle>
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatCurrency(stats.thisMonthTotalExpenses || 0)}</div>
+                <p className="text-xs text-muted-foreground">Berdasarkan seluruh franchise</p>
               </CardContent>
             </Card>
           </>
