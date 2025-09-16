@@ -717,7 +717,7 @@ const Dashboard = () => {
                               year: 'numeric' 
                             })}
                           </TableCell>
-                          <TableCell className="text-right text-green-600 font-medium">
+                          <TableCell className="text-right text-purple-600 font-medium">
                             {formatCurrency(item.adminIncome)}
                           </TableCell>
                           <TableCell className="text-right text-blue-600 font-medium">
@@ -727,7 +727,7 @@ const Dashboard = () => {
                             {formatCurrency(item.expenses)}
                           </TableCell>
                           {userRole?.role === 'super_admin' && (
-                            <TableCell className="text-right text-purple-600 font-medium">
+                            <TableCell className="text-right text-green-600 font-medium">
                               {formatCurrency(item.profitSharing || 0)}
                             </TableCell>
                           )}
@@ -743,7 +743,7 @@ const Dashboard = () => {
                       {paginatedSummary.length > 0 && (
                         <TableRow className="bg-blue-100 font-semibold">
                           <TableCell className="font-bold">Total</TableCell>
-                          <TableCell className="text-right text-green-700 font-bold">
+                          <TableCell className="text-right text-purple-700 font-bold">
                             {formatCurrency(paginatedSummary.reduce((sum, item) => sum + item.adminIncome, 0))}
                           </TableCell>
                           <TableCell className="text-right text-blue-700 font-bold">
@@ -753,7 +753,7 @@ const Dashboard = () => {
                             {formatCurrency(paginatedSummary.reduce((sum, item) => sum + item.expenses, 0))}
                           </TableCell>
                           {userRole?.role === 'super_admin' && (
-                            <TableCell className="text-right text-purple-700 font-bold">
+                            <TableCell className="text-right text-green-700 font-bold">
                               {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.profitSharing || 0), 0))}
                             </TableCell>
                           )}
