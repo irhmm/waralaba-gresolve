@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Download, Check, ChevronsUpDown } from "lucide-react";
-import { toast } from "sonner";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -108,6 +107,79 @@ export default function FranchiseProfitSharingPage() {
   const totalProfitShare = filteredData.reduce((sum, item) => sum + item.profit_share_amount, 0);
   const paidCount = filteredData.filter(item => item.payment_status === 'paid').length;
   const unpaidCount = filteredData.filter(item => item.payment_status === 'unpaid').length;
+
+  const queryClient = useQueryClient();
+
+  const recalcMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('calculate_franchise_profit_sharing', { target_month_year: selectedMonth });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Berhasil', description: 'Data bagi hasil telah dihitung ulang.' });
+      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing', selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing-months'] });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: 'Gagal menghitung ulang: ' + error.message, variant: 'destructive' });
+    },
+  });
+
+  const togglePaymentStatus = useMutation({
+    mutationFn: async (args: { franchise_id: string; newStatus: 'paid' | 'unpaid' }) => {
+      const { error } = await supabase
+        .from('franchise_profit_sharing')
+        .update({ payment_status: args.newStatus })
+        .eq('franchise_id', args.franchise_id)
+        .eq('month_year', selectedMonth);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Berhasil', description: 'Status pembayaran diperbarui.' });
+      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing', selectedMonth] });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updateAdminPercentage = useMutation({
+    mutationFn: async (args: { franchise_id: string; newPercentage: number; monthlyRevenue: number }) => {
+      const newShare = Math.round((args.monthlyRevenue * args.newPercentage) / 100);
+      const { error } = await supabase
+        .from('franchise_profit_sharing')
+        .update({ admin_percentage: args.newPercentage, share_nominal: newShare })
+        .eq('franchise_id', args.franchise_id)
+        .eq('month_year', selectedMonth);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Berhasil', description: 'Persentase admin diperbarui.' });
+      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing', selectedMonth] });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteRow = useMutation({
+    mutationFn: async (args: { franchise_id: string }) => {
+      const { error } = await supabase
+        .from('franchise_profit_sharing')
+        .delete()
+        .eq('franchise_id', args.franchise_id)
+        .eq('month_year', selectedMonth);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Berhasil', description: 'Data dihapus.' });
+      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing', selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing-months'] });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
 
   const exportToExcel = () => {
     const exportData = filteredData.map(item => ({
@@ -245,10 +317,19 @@ export default function FranchiseProfitSharingPage() {
               </div>
             </div>
 
-            <Button onClick={exportToExcel} className="bg-primary hover:bg-primary/90">
-              <Download className="mr-2 h-4 w-4" />
-              Export Excel
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                onClick={() => recalcMutation.mutate()}
+                className="hover:opacity-90"
+              >
+                Hitung Ulang
+              </Button>
+              <Button onClick={exportToExcel} className="bg-primary hover:bg-primary/90">
+                <Download className="mr-2 h-4 w-4" />
+                Export Excel
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
@@ -262,18 +343,19 @@ export default function FranchiseProfitSharingPage() {
                   <TableHead className="text-center">Persentase (%)</TableHead>
                   <TableHead className="text-right">Nominal Bagi Hasil</TableHead>
                   <TableHead className="text-center">Status Pembayaran</TableHead>
+                  <TableHead className="text-center">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
                 <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Loading data...
                     </TableCell>
                   </TableRow>
                 ) : filteredData.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       Tidak ada data bagi hasil untuk bulan ini
                     </TableCell>
                   </TableRow>
@@ -299,6 +381,47 @@ export default function FranchiseProfitSharingPage() {
                         >
                           {item.payment_status === 'paid' ? 'Sudah Dibayar' : 'Belum Dibayar'}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-center space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            togglePaymentStatus.mutate({
+                              franchise_id: item.franchise_id,
+                              newStatus: item.payment_status === 'paid' ? 'unpaid' : 'paid',
+                            })
+                          }
+                        >
+                          {item.payment_status === 'paid' ? 'Tandai Belum' : 'Tandai Dibayar'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const input = window.prompt('Persentase admin (%)', String(item.admin_percentage));
+                            if (input === null) return;
+                            const num = Number(input);
+                            if (isNaN(num) || num < 0 || num > 100) {
+                              toast({ title: 'Input tidak valid', description: 'Masukkan angka 0-100', variant: 'destructive' });
+                              return;
+                            }
+                            updateAdminPercentage.mutate({ franchise_id: item.franchise_id, newPercentage: num, monthlyRevenue: item.monthly_revenue });
+                          }}
+                        >
+                          Ubah %
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => {
+                            if (confirm('Hapus data bagi hasil ini?')) {
+                              deleteRow.mutate({ franchise_id: item.franchise_id });
+                            }
+                          }}
+                        >
+                          Hapus
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))
