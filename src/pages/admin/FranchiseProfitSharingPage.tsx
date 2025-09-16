@@ -99,9 +99,9 @@ export default function FranchiseProfitSharingPage() {
           franchise_name: item.franchise_name,
           monthly_revenue: item.total_revenue ?? 0,
           admin_percentage: item.admin_percentage ?? 20,
-          profit_share_amount: item.share_nominal ?? ((item.total_revenue ?? 0) * (item.admin_percentage ?? 20) / 100),
+          profit_share_amount: item.share_nominal ?? (item.total_revenue * item.admin_percentage / 100) ?? 0,
           payment_status: item.payment_status as 'paid' | 'unpaid'
-        })) || [];
+        })) ?? [];
       } catch (error) {
         console.error("Query Error:", error);
         return [];
@@ -253,8 +253,9 @@ export default function FranchiseProfitSharingPage() {
           <div className="space-y-2 text-sm text-muted-foreground">
             <p>• Total Pendapatan = Pendapatan Admin + Pendapatan Worker</p>
             <p>• Nominal Bagi Hasil = Total Pendapatan × Persentase Admin</p>
-            <p>• Persentase dapat diatur di halaman "Pengaturan Bagi Hasil"</p>
-            <p>• Klik "Hitung Ulang" untuk memperbarui data berdasarkan transaksi terbaru</p>
+            <p>• Persentase menggunakan: Pengaturan Franchise → Pengaturan Global → Default (20%)</p>
+            <p>• Klik "Hitung Ulang" untuk memperbarui data berdasarkan transaksi dan pengaturan terbaru</p>
+            <p>• Ubah persentase di halaman "Pengaturan Bagi Hasil" untuk memengaruhi semua perhitungan</p>
           </div>
         </CardContent>
       </Card>
@@ -334,7 +335,7 @@ export default function FranchiseProfitSharingPage() {
                 variant="secondary"
                 onClick={() => recalcMutation.mutate()}
                 className="hover:opacity-90"
-                title="Menghitung ulang total pendapatan dan nominal bagi hasil berdasarkan data admin_income + worker_income terbaru, serta menerapkan pengaturan persentase terbaru"
+                title="Menghitung ulang total pendapatan dan nominal bagi hasil berdasarkan data admin_income + worker_income terbaru serta pengaturan persentase terkini"
               >
                 Hitung Ulang Data
               </Button>
@@ -439,37 +440,37 @@ export default function FranchiseProfitSharingPage() {
           
           <div className="space-y-6 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-percentage" className="text-sm font-medium text-foreground">
-                Persentase Bagi Hasil Admin (%)
+              <Label htmlFor="percentage" className="text-card-foreground">
+                Persentase Admin (%)
               </Label>
               <Input
-                id="edit-percentage"
+                id="percentage"
                 type="number"
                 min="0"
                 max="100"
                 step="0.01"
                 value={editPercentage}
-                onChange={(e) => setEditPercentage(Number(e.target.value))}
-                className="border-border bg-background text-foreground"
+                onChange={(e) => setEditPercentage(parseFloat(e.target.value) || 0)}
+                className="bg-background border-border text-card-foreground"
               />
-              <div className="text-xs text-muted-foreground">
-                Persentase franchise: {100 - editPercentage}%
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Franchise akan mendapat: {(100 - editPercentage).toFixed(2)}%
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-payment-status" className="text-sm font-medium text-foreground">
+              <Label htmlFor="payment-status" className="text-card-foreground">
                 Status Pembayaran
               </Label>
               <Select value={editPaymentStatus} onValueChange={(value: 'paid' | 'unpaid') => setEditPaymentStatus(value)}>
-                <SelectTrigger className="border-border bg-background text-foreground">
+                <SelectTrigger className="bg-background border-border text-card-foreground">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-background border-border">
-                  <SelectItem value="unpaid" className="text-foreground hover:bg-muted">
+                <SelectContent className="bg-card border-border">
+                  <SelectItem value="unpaid" className="text-card-foreground hover:bg-accent">
                     Belum Dibayar
                   </SelectItem>
-                  <SelectItem value="paid" className="text-foreground hover:bg-muted">
+                  <SelectItem value="paid" className="text-card-foreground hover:bg-accent">
                     Sudah Dibayar
                   </SelectItem>
                 </SelectContent>
@@ -477,40 +478,38 @@ export default function FranchiseProfitSharingPage() {
             </div>
 
             {editingItem && (
-              <div className="p-4 bg-muted/30 rounded-lg border border-border">
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Pendapatan:</span>
-                    <span className="font-medium text-foreground">
-                      {formatCurrency(editingItem.monthly_revenue)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Nominal Bagi Hasil:</span>
-                    <span className="font-bold text-primary">
-                      {formatCurrency(Math.round((editingItem.monthly_revenue * editPercentage) / 100))}
-                    </span>
-                  </div>
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total Pendapatan:</span>
+                  <span className="font-medium text-card-foreground">
+                    {formatCurrency(editingItem.monthly_revenue)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Nominal Bagi Hasil (Baru):</span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency((editingItem.monthly_revenue * editPercentage) / 100)}
+                  </span>
                 </div>
               </div>
             )}
-          </div>
 
-          <div className="flex justify-end space-x-2 pt-4 border-t border-border">
-            <Button
-              variant="outline"
-              onClick={() => setEditModalOpen(false)}
-              className="border-border text-foreground hover:bg-muted"
-            >
-              Batal
-            </Button>
-            <Button
-              onClick={handleSaveEdit}
-              disabled={editPercentage < 0 || editPercentage > 100}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              Simpan Perubahan
-            </Button>
+            <div className="flex gap-3 pt-4">
+              <Button 
+                onClick={handleSaveEdit}
+                disabled={editPercentage < 0 || editPercentage > 100}
+                className="flex-1"
+              >
+                Simpan Perubahan
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setEditModalOpen(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

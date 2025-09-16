@@ -40,7 +40,7 @@ export default function ProfitSharingSettingsPage() {
 
       if (franchiseError) throw franchiseError;
 
-      // Get franchise-specific profit settings from franchise_profit_settings table
+      // Get franchise-specific profit settings 
       const { data: settings, error: settingsError } = await supabase
         .from("franchise_profit_settings")
         .select("franchise_id, admin_percentage, franchise_percentage");
@@ -49,14 +49,24 @@ export default function ProfitSharingSettingsPage() {
         throw settingsError;
       }
 
-      // Combine franchises with their settings (default to 20/80 if no settings exist)
+      // Get global settings as fallback
+      const { data: globalSettings } = await supabase
+        .from("global_profit_settings")
+        .select("admin_percentage, franchise_percentage")
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const defaultAdminPct = globalSettings?.[0]?.admin_percentage ?? 20;
+      const defaultFranchisePct = globalSettings?.[0]?.franchise_percentage ?? 80;
+
+      // Combine franchises with their settings (use franchise-specific, then global, then hardcoded defaults)
       return franchises.map(franchise => {
         const setting = settings?.find(s => s.franchise_id === franchise.id);
         return {
           franchise_id: franchise.id,
           franchise_name: franchise.name,
-          admin_percentage: setting?.admin_percentage ?? 20,
-          franchise_percentage: setting?.franchise_percentage ?? 80,
+          admin_percentage: setting?.admin_percentage ?? defaultAdminPct,
+          franchise_percentage: setting?.franchise_percentage ?? defaultFranchisePct,
         };
       });
     },
@@ -66,7 +76,7 @@ export default function ProfitSharingSettingsPage() {
     mutationFn: async (data: { franchise_id: string; admin_percentage: number }) => {
       const franchise_percentage = 100 - data.admin_percentage;
 
-      // Save to franchise_profit_settings table (persistent settings)
+      // Save to franchise_profit_settings table (per-franchise settings)
       const { error } = await supabase
         .from("franchise_profit_settings")
         .upsert({
@@ -80,7 +90,7 @@ export default function ProfitSharingSettingsPage() {
 
       if (error) throw error;
 
-      // Recalculate all existing months for this franchise to reflect new settings
+      // Recalculate existing profit sharing data to reflect new settings
       const { error: recalcError } = await supabase.rpc('recalculate_profit_sharing_for_settings_change', {
         changed_franchise_id: data.franchise_id
       });
@@ -141,9 +151,9 @@ export default function ProfitSharingSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Pengaturan Bagi Hasil per Franchise</CardTitle>
+          <CardTitle>Persentase Bagi Hasil per Franchise</CardTitle>
           <p className="text-muted-foreground">
-            Atur persentase bagi hasil untuk setiap franchise. Pengaturan ini akan memperbarui semua data bagi hasil yang sudah ada. Persentase admin + franchise harus = 100%.
+            Atur persentase bagi hasil untuk setiap franchise. Jika tidak diatur, akan menggunakan pengaturan global. Persentase admin + franchise harus = 100%.
           </p>
         </CardHeader>
         <CardContent>
@@ -248,11 +258,11 @@ export default function ProfitSharingSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p>• Pengaturan ini akan langsung memperbarui semua data bagi hasil yang ada</p>
+            <p>• Pengaturan ini akan berlaku untuk semua perhitungan bagi hasil (bulan sekarang dan yang akan datang)</p>
             <p>• Total pendapatan dihitung dari: Pendapatan Admin + Pendapatan Worker</p>
             <p>• Nominal bagi hasil = Total Pendapatan × Persentase Admin</p>
-            <p>• Persentase default: Admin 20%, Franchise 80%</p>
-            <p>• Perubahan akan segera terlihat di halaman "Data Bagi Hasil Franchise"</p>
+            <p>• Persentase menggunakan prioritas: Pengaturan Franchise → Pengaturan Global → Default (20%/80%)</p>
+            <p>• Setelah mengubah pengaturan, data bagi hasil yang sudah ada akan dihitung ulang otomatis</p>
           </div>
         </CardContent>
       </Card>
