@@ -130,11 +130,24 @@ const ProfitSharingPage = () => {
 
       if (error) throw error;
 
+      // Trigger recalculation for current month to apply new settings
+      const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM format
+      const { error: calcError } = await supabase
+        .rpc('calculate_franchise_profit_sharing', {
+          target_month_year: currentMonth
+        });
+
+      if (calcError) {
+        console.error('Calculation error:', calcError);
+        // Don't fail the save, but log the error
+      }
+
       toast({
         title: "Berhasil",
-        description: "Pengaturan bagi hasil berhasil disimpan dan akan berlaku untuk semua bulan",
+        description: "Pengaturan bagi hasil berhasil disimpan dan diterapkan",
       });
     } catch (error) {
+      console.error('Save error:', error);
       toast({
         title: "Error",
         description: "Gagal menyimpan pengaturan bagi hasil",

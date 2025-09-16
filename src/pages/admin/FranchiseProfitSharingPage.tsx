@@ -84,6 +84,7 @@ export default function FranchiseProfitSharingPage() {
 
         if (error) {
           console.error("RPC Error:", error);
+          console.error("Error details:", JSON.stringify(error, null, 2));
           toast({
             title: "Error",
             description: "Failed to fetch profit sharing data: " + error.message,
@@ -92,6 +93,7 @@ export default function FranchiseProfitSharingPage() {
           throw error;
         }
 
+        console.log("Profit sharing data:", data);
         return data?.map((item: any) => ({
           franchise_id: item.franchise_id,
           franchise_name: item.franchise_name,
