@@ -45,8 +45,8 @@ export default function AdminIncomePage() {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [codeFilter, setCodeFilter] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('all');
+  const [codeFilter, setCodeFilter] = useState('all');
 
   const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing'].includes(userRole.role);
   const isSuperAdmin = userRole?.role === 'super_admin';
@@ -200,7 +200,7 @@ export default function AdminIncomePage() {
     }
 
     // Month filter
-    if (selectedMonth) {
+    if (selectedMonth && selectedMonth !== 'all') {
       filtered = filtered.filter(item => {
         const itemMonth = format(new Date(item.tanggal), 'yyyy-MM');
         return itemMonth === selectedMonth;
@@ -208,7 +208,7 @@ export default function AdminIncomePage() {
     }
 
     // Code filter
-    if (codeFilter) {
+    if (codeFilter && codeFilter !== 'all') {
       filtered = filtered.filter(item =>
         item.code.toLowerCase().includes(codeFilter.toLowerCase())
       );
@@ -372,8 +372,8 @@ export default function AdminIncomePage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Semua bulan" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Semua bulan</SelectItem>
+                <SelectContent className="z-50 bg-white">
+                  <SelectItem value="all">Semua bulan</SelectItem>
                   {availableMonths.map((month) => (
                     <SelectItem key={month.value} value={month.value}>
                       {month.label}
@@ -388,8 +388,8 @@ export default function AdminIncomePage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Semua kode" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Semua kode</SelectItem>
+                <SelectContent className="z-50 bg-white">
+                  <SelectItem value="all">Semua kode</SelectItem>
                   {availableCodes.map((code) => (
                     <SelectItem key={code} value={code}>
                       {code}
@@ -436,7 +436,7 @@ export default function AdminIncomePage() {
               {filteredData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 4 : 3} className="text-center text-muted-foreground">
-                    {searchTerm || selectedMonth || codeFilter 
+                    {searchTerm || (selectedMonth && selectedMonth !== 'all') || (codeFilter && codeFilter !== 'all')
                       ? 'Tidak ada data yang sesuai dengan filter' 
                       : 'Belum ada data pendapatan admin'
                     }

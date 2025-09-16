@@ -55,8 +55,8 @@ export default function WorkerIncomePage() {
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedWorker, setSelectedWorker] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('all');
+  const [selectedWorker, setSelectedWorker] = useState('all');
   const [workerSearchTerm, setWorkerSearchTerm] = useState('');
 
   const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role);
@@ -159,7 +159,7 @@ export default function WorkerIncomePage() {
     }
 
     // Month filter
-    if (selectedMonth) {
+    if (selectedMonth && selectedMonth !== 'all') {
       filtered = filtered.filter(item => {
         const itemMonth = format(new Date(item.tanggal), 'yyyy-MM');
         return itemMonth === selectedMonth;
@@ -167,7 +167,7 @@ export default function WorkerIncomePage() {
     }
 
     // Worker filter
-    if (selectedWorker) {
+    if (selectedWorker && selectedWorker !== 'all') {
       filtered = filtered.filter(item => item.worker_id === selectedWorker);
     }
 
@@ -437,8 +437,8 @@ export default function WorkerIncomePage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Semua bulan" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Semua bulan</SelectItem>
+                <SelectContent className="z-50 bg-white">
+                  <SelectItem value="all">Semua bulan</SelectItem>
                   {availableMonths.map((month) => (
                     <SelectItem key={month.value} value={month.value}>
                       {month.label}
@@ -453,8 +453,8 @@ export default function WorkerIncomePage() {
                 <SelectTrigger>
                   <SelectValue placeholder="Semua worker" />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Semua worker</SelectItem>
+                <SelectContent className="z-50 bg-white">
+                  <SelectItem value="all">Semua worker</SelectItem>
                   <div className="p-2">
                     <Input
                       placeholder="Cari worker..."
@@ -513,7 +513,7 @@ export default function WorkerIncomePage() {
               {filteredData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 6 : 5} className="text-center text-muted-foreground">
-                    {searchTerm || selectedMonth || selectedWorker 
+                    {searchTerm || (selectedMonth && selectedMonth !== 'all') || (selectedWorker && selectedWorker !== 'all')
                       ? 'Tidak ada data yang sesuai dengan filter' 
                       : 'Belum ada data pendapatan worker'
                     }
