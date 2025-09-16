@@ -146,11 +146,12 @@ export default function FranchiseProfitSharingPage() {
   const updateAdminPercentage = useMutation({
     mutationFn: async (args: { franchise_id: string; newPercentage: number; monthlyRevenue: number }) => {
       const newShare = Math.round((args.monthlyRevenue * args.newPercentage) / 100);
+      const newFranchisePercentage = 100 - args.newPercentage;
       const { error } = await supabase
         .from('franchise_profit_sharing')
         .update({ 
           admin_percentage: args.newPercentage, 
-          franchise_percentage: 100 - args.newPercentage,
+          franchise_percentage: newFranchisePercentage,
           share_nominal: newShare 
         })
         .eq('franchise_id', args.franchise_id)
@@ -202,6 +203,10 @@ export default function FranchiseProfitSharingPage() {
   };
 
   const formatCurrency = (amount: number) => {
+    // Handle NaN or invalid numbers
+    if (isNaN(amount) || amount === null || amount === undefined) {
+      amount = 0;
+    }
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
