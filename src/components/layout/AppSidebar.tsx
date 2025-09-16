@@ -24,7 +24,8 @@ import {
   Wallet,
   UserCheck,
   Receipt,
-  Plus
+  Plus,
+  Percent
 } from 'lucide-react';
 
 const menuItems = {
@@ -43,6 +44,11 @@ const menuItems = {
       title: 'Add Franchise',
       url: '/admin/franchises/new',
       icon: Plus,
+    },
+    {
+      title: 'Bagi Hasil Franchise',
+      url: '/admin/profit-sharing',
+      icon: Percent,
     },
     {
       title: 'User Management',

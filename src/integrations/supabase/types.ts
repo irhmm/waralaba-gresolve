@@ -90,6 +90,47 @@ export type Database = {
           },
         ]
       }
+      franchise_profit_sharing: {
+        Row: {
+          admin_percentage: number
+          created_at: string
+          created_by: string
+          franchise_id: string
+          franchise_percentage: number
+          id: string
+          month_year: string
+          updated_at: string
+        }
+        Insert: {
+          admin_percentage?: number
+          created_at?: string
+          created_by: string
+          franchise_id: string
+          franchise_percentage?: number
+          id?: string
+          month_year: string
+          updated_at?: string
+        }
+        Update: {
+          admin_percentage?: number
+          created_at?: string
+          created_by?: string
+          franchise_id?: string
+          franchise_percentage?: number
+          id?: string
+          month_year?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "franchise_profit_sharing_franchise_id_fkey"
+            columns: ["franchise_id"]
+            isOneToOne: false
+            referencedRelation: "franchises"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       franchises: {
         Row: {
           address: string | null
@@ -340,6 +381,14 @@ export type Database = {
       generate_franchise_id: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_franchise_profit_sharing: {
+        Args: { target_franchise_id: string; target_month?: string }
+        Returns: {
+          admin_percentage: number
+          franchise_percentage: number
+          month_year: string
+        }[]
       }
       get_user_franchise_id: {
         Args: { target_user_id?: string }

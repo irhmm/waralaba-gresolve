@@ -1,0 +1,297 @@
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Settings, Save, Percent } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+
+interface Franchise {
+  id: string;
+  name: string;
+  franchise_id: string;
+}
+
+interface ProfitSharing {
+  franchise_id: string;
+  month_year: string;
+  admin_percentage: number;
+  franchise_percentage: number;
+}
+
+const ProfitSharingPage = () => {
+  const [franchises, setFranchises] = useState<Franchise[]>([]);
+  const [selectedFranchise, setSelectedFranchise] = useState<string>('');
+  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
+  const [adminPercentage, setAdminPercentage] = useState<number>(20);
+  const [franchisePercentage, setFranchisePercentage] = useState<number>(80);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchFranchises();
+  }, []);
+
+  useEffect(() => {
+    if (selectedFranchise && selectedMonth) {
+      fetchProfitSharing();
+    }
+  }, [selectedFranchise, selectedMonth]);
+
+  const fetchFranchises = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('franchises')
+        .select('id, name, franchise_id')
+        .order('name');
+
+      if (error) throw error;
+      setFranchises(data || []);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat data franchise",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchProfitSharing = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .rpc('get_franchise_profit_sharing', {
+          target_franchise_id: selectedFranchise,
+          target_month: selectedMonth
+        });
+
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        setAdminPercentage(data[0].admin_percentage);
+        setFranchisePercentage(data[0].franchise_percentage);
+      } else {
+        // Default values
+        setAdminPercentage(20);
+        setFranchisePercentage(80);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal memuat pengaturan bagi hasil",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAdminPercentageChange = (value: number) => {
+    if (value >= 0 && value <= 100) {
+      setAdminPercentage(value);
+      setFranchisePercentage(100 - value);
+    }
+  };
+
+  const handleFranchisePercentageChange = (value: number) => {
+    if (value >= 0 && value <= 100) {
+      setFranchisePercentage(value);
+      setAdminPercentage(100 - value);
+    }
+  };
+
+  const saveProfitSharing = async () => {
+    if (!selectedFranchise || !selectedMonth) {
+      toast({
+        title: "Error",
+        description: "Pilih franchise dan bulan terlebih dahulu",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('franchise_profit_sharing')
+        .upsert({
+          franchise_id: selectedFranchise,
+          month_year: selectedMonth,
+          admin_percentage: adminPercentage,
+          franchise_percentage: franchisePercentage,
+          created_by: userData.user?.id
+        }, {
+          onConflict: 'franchise_id,month_year'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Berhasil",
+        description: "Pengaturan bagi hasil berhasil disimpan",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Gagal menyimpan pengaturan bagi hasil",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const generateMonthOptions = () => {
+    const options = [];
+    const currentDate = new Date();
+    
+    for (let i = -6; i <= 6; i++) {
+      const date = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+      const value = format(date, 'yyyy-MM');
+      const label = format(date, 'MMMM yyyy');
+      options.push({ value, label });
+    }
+    
+    return options;
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+        <Settings className="h-6 w-6 text-primary" />
+        <h1 className="text-2xl font-bold text-foreground">Pengaturan Bagi Hasil Franchise</h1>
+      </div>
+
+      <Card className="border-border bg-card">
+        <CardHeader className="border-b border-border">
+          <CardTitle className="flex items-center gap-2 text-card-foreground">
+            <Percent className="h-5 w-5 text-primary" />
+            Atur Persentase Bagi Hasil
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          {/* Franchise and Month Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="franchise">Pilih Franchise</Label>
+              <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih franchise..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {franchises.map((franchise) => (
+                    <SelectItem key={franchise.id} value={franchise.id}>
+                      {franchise.name} ({franchise.franchise_id})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="month">Pilih Bulan</Label>
+              <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih bulan..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {generateMonthOptions().map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Percentage Settings */}
+          {selectedFranchise && selectedMonth && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-percentage">Persentase Super Admin (%)</Label>
+                  <Input
+                    id="admin-percentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={adminPercentage}
+                    onChange={(e) => handleAdminPercentageChange(Number(e.target.value))}
+                    className="text-lg font-semibold"
+                  />
+                </div>
+                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-primary">{adminPercentage}%</div>
+                    <div className="text-sm text-muted-foreground">Bagian Super Admin</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="franchise-percentage">Persentase Franchise (%)</Label>
+                  <Input
+                    id="franchise-percentage"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={franchisePercentage}
+                    onChange={(e) => handleFranchisePercentageChange(Number(e.target.value))}
+                    className="text-lg font-semibold"
+                  />
+                </div>
+                <div className="p-4 bg-success/5 rounded-lg border border-success/10">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-success">{franchisePercentage}%</div>
+                    <div className="text-sm text-muted-foreground">Bagian Franchise</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Summary */}
+          {selectedFranchise && selectedMonth && (
+            <div className="p-4 bg-muted/30 rounded-lg border border-border">
+              <div className="text-center space-y-2">
+                <div className="text-sm text-muted-foreground">Total Persentase</div>
+                <div className="text-xl font-bold text-foreground">
+                  {adminPercentage + franchisePercentage}%
+                </div>
+                {adminPercentage + franchisePercentage !== 100 && (
+                  <div className="text-sm text-destructive">
+                    ⚠️ Total harus 100%
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Save Button */}
+          {selectedFranchise && selectedMonth && (
+            <div className="flex justify-end">
+              <Button 
+                onClick={saveProfitSharing}
+                disabled={saving || loading || adminPercentage + franchisePercentage !== 100}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default ProfitSharingPage;

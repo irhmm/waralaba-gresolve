@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { format } from 'date-fns';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,7 +12,8 @@ import {
   CreditCard,
   Wallet,
   BarChart3,
-  Calendar
+  Calendar,
+  Percent
 } from 'lucide-react';
 
 interface DashboardStats {
@@ -24,6 +26,8 @@ interface DashboardStats {
   thisMonthWorkerIncome?: number;
   thisMonthAdminIncome?: number;
   thisMonthExpenses?: number;
+  profitSharingPercentage?: number;
+  adminProfitShare?: number;
 }
 
 const Dashboard = () => {
@@ -122,6 +126,20 @@ const Dashboard = () => {
             .select('amount')
             .eq('franchise_id', franchiseId);
           newStats.totalSalaryWithdrawals = salaryWithdrawals?.reduce((sum, item) => sum + Number(item.amount), 0) || 0;
+
+          // Fetch profit sharing settings
+          const currentMonthYear = format(new Date(), 'yyyy-MM');
+          const { data: profitSharing } = await supabase
+            .rpc('get_franchise_profit_sharing', {
+              target_franchise_id: franchiseId,
+              target_month: currentMonthYear
+            });
+          
+          if (profitSharing && profitSharing.length > 0) {
+            newStats.profitSharingPercentage = profitSharing[0].admin_percentage;
+            const monthlyRevenue = (newStats.thisMonthWorkerIncome || 0) + (newStats.thisMonthAdminIncome || 0);
+            newStats.adminProfitShare = monthlyRevenue * (profitSharing[0].admin_percentage / 100);
+          }
         }
       }
 
@@ -309,6 +327,21 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="text-2xl font-bold">{stats.totalWorkers || 0}</div>
                   <p className="text-xs text-muted-foreground">Worker aktif</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {userRole?.role === 'franchise' && (
+              <Card className="card-hover">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Bagi Hasil Owner</CardTitle>
+                  <Percent className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(stats.adminProfitShare || 0)}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Persentase: {stats.profitSharingPercentage || 20}% dari pendapatan bulanan
+                  </p>
                 </CardContent>
               </Card>
             )}

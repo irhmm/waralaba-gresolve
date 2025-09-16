@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import FranchisesPage from "./pages/FranchisesPage";
 import ListFranchisePage from "./pages/admin/ListFranchisePage";
 import AddFranchisePage from "./pages/admin/AddFranchisePage";
+import ProfitSharingPage from "./pages/admin/ProfitSharingPage";
 import AdminIncomePage from "./pages/AdminIncomePage";
 import WorkerIncomePage from "./pages/WorkerIncomePage";
 import ExpensesPage from "./pages/ExpensesPage";
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="franchises" element={<FranchisesPage />} />
               <Route path="admin/franchises" element={<ListFranchisePage />} />
               <Route path="admin/franchises/new" element={<AddFranchisePage />} />
+              <Route path="admin/profit-sharing" element={<ProfitSharingPage />} />
               <Route path="admin-income" element={<AdminIncomePage />} />
               <Route path="worker-income" element={<WorkerIncomePage />} />
               <Route path="expenses" element={<ExpensesPage />} />
