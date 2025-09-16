@@ -10,6 +10,7 @@ import { MonthSelector } from '@/components/ui/month-selector';
 import { Textarea } from '@/components/ui/textarea';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -43,6 +44,10 @@ export default function ExpensesPage() {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('all');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Only super_admin, franchise, and admin_keuangan can access expenses
   const canAccess = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role);
@@ -175,6 +180,19 @@ export default function ExpensesPage() {
     const grouped = groupDataByMonth(filteredData);
     return calculateMonthlyTotals(grouped, 'nominal');
   }, [filteredData]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage, pageSize]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedMonth]);
 
   const availableMonths = useMemo(() => getAvailableMonths(expenses), [expenses]);
 
@@ -353,7 +371,7 @@ export default function ExpensesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.map((item) => (
+              {paginatedData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-red-50/50">
                   <TableCell>Rp {item.nominal.toLocaleString('id-ID')}</TableCell>
                   <TableCell>{item.keterangan}</TableCell>
@@ -376,7 +394,7 @@ export default function ExpensesPage() {
                   )}
                 </TableRow>
               ))}
-              {filteredData.length === 0 && (
+              {paginatedData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 4 : 3} className="text-center text-muted-foreground">
                     {searchTerm || (selectedMonth && selectedMonth !== 'all')
@@ -388,6 +406,15 @@ export default function ExpensesPage() {
               )}
             </TableBody>
           </Table>
+
+          <DataTablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={filteredData.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
     </div>

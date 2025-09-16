@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { MonthSelector } from '@/components/ui/month-selector';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -48,6 +49,10 @@ export default function AdminIncomePage() {
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('all');
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [codeFilter, setCodeFilter] = useState('all');
 
   const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing'].includes(userRole.role);
@@ -223,6 +228,19 @@ export default function AdminIncomePage() {
     const grouped = groupDataByMonth(filteredData);
     return calculateMonthlyTotals(grouped, 'nominal');
   }, [filteredData]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage, pageSize]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedMonth, codeFilter]);
 
   const availableMonths = useMemo(() => getAvailableMonths(adminIncomes), [adminIncomes]);
 
@@ -435,7 +453,7 @@ export default function AdminIncomePage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.map((item) => (
+              {paginatedData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-blue-50/50">
                   <TableCell>{item.code}</TableCell>
                   <TableCell>Rp {item.nominal.toLocaleString('id-ID')}</TableCell>
@@ -458,7 +476,7 @@ export default function AdminIncomePage() {
                   )}
                 </TableRow>
               ))}
-              {filteredData.length === 0 && (
+              {paginatedData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 4 : 3} className="text-center text-muted-foreground">
                     {searchTerm || (selectedMonth && selectedMonth !== 'all') || (codeFilter && codeFilter !== 'all')
@@ -470,6 +488,15 @@ export default function AdminIncomePage() {
               )}
             </TableBody>
           </Table>
+
+          <DataTablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={filteredData.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
     </div>

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Trash2, Filter, Download, Search, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -45,6 +46,10 @@ export default function WorkersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false);
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // Access control based on user role
   const canAccess = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing'].includes(userRole.role);
@@ -182,6 +187,19 @@ export default function WorkersPage() {
 
     return filtered;
   }, [workers, searchTerm, statusFilter, roleFilter]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredData.slice(startIndex, endIndex);
+  }, [filteredData, currentPage, pageSize]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, roleFilter]);
 
   // Get available statuses and roles for filter dropdowns
   const availableStatuses = useMemo(() => {
@@ -418,7 +436,7 @@ export default function WorkersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredData.map((item) => (
+              {paginatedData.map((item) => (
                 <TableRow key={item.id} className="hover:bg-blue-50/50">
                   <TableCell className="font-medium">{item.nama}</TableCell>
                   <TableCell>{item.rekening || '-'}</TableCell>
@@ -447,7 +465,7 @@ export default function WorkersPage() {
                   )}
                 </TableRow>
               ))}
-              {filteredData.length === 0 && (
+              {paginatedData.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={canWrite ? 6 : 5} className="text-center text-muted-foreground">
                     {searchTerm || statusFilter !== 'all' || roleFilter !== 'all'
@@ -459,6 +477,15 @@ export default function WorkersPage() {
               )}
             </TableBody>
           </Table>
+
+          <DataTablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={filteredData.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
     </div>
