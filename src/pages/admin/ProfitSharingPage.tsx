@@ -3,27 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Save, Percent } from 'lucide-react';
+import { Settings, Save, Percent, Globe } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
-interface Franchise {
-  id: string;
-  name: string;
-  franchise_id: string;
-}
-
-interface ProfitSharing {
-  franchise_id: string;
-  admin_percentage: number;
-  franchise_percentage: number;
-}
-
 const ProfitSharingPage = () => {
-  const [franchises, setFranchises] = useState<Franchise[]>([]);
-  const [selectedFranchise, setSelectedFranchise] = useState<string>('');
   const [adminPercentage, setAdminPercentage] = useState<number>(20);
   const [franchisePercentage, setFranchisePercentage] = useState<number>(80);
   const [loading, setLoading] = useState(false);
@@ -31,40 +16,14 @@ const ProfitSharingPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchFranchises();
+    fetchGlobalProfitSettings();
   }, []);
 
-  useEffect(() => {
-    if (selectedFranchise) {
-      fetchProfitSharing();
-    }
-  }, [selectedFranchise]);
-
-  const fetchFranchises = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('franchises')
-        .select('id, name, franchise_id')
-        .order('name');
-
-      if (error) throw error;
-      setFranchises(data || []);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Gagal memuat data franchise",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchProfitSharing = async () => {
+  const fetchGlobalProfitSettings = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .rpc('get_global_franchise_profit_settings', {
-          target_franchise_id: selectedFranchise
-        });
+        .rpc('get_global_profit_settings');
 
       if (error) throw error;
       
@@ -79,7 +38,7 @@ const ProfitSharingPage = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Gagal memuat pengaturan bagi hasil",
+        description: "Gagal memuat pengaturan bagi hasil global",
         variant: "destructive",
       });
     } finally {
@@ -101,41 +60,33 @@ const ProfitSharingPage = () => {
     }
   };
 
-  const saveProfitSharing = async () => {
-    if (!selectedFranchise) {
-      toast({
-        title: "Error",
-        description: "Pilih franchise terlebih dahulu",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const saveGlobalProfitSettings = async () => {
     setSaving(true);
     try {
       const { data: userData } = await supabase.auth.getUser();
       
+      // Delete old settings first
+      await supabase.from('global_profit_settings').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      
+      // Insert new settings
       const { error } = await supabase
-        .from('franchise_profit_settings')
-        .upsert({
-          franchise_id: selectedFranchise,
+        .from('global_profit_settings')
+        .insert({
           admin_percentage: adminPercentage,
           franchise_percentage: franchisePercentage,
           created_by: userData.user?.id
-        }, {
-          onConflict: 'franchise_id'
         });
 
       if (error) throw error;
 
       toast({
         title: "Berhasil",
-        description: "Pengaturan bagi hasil berhasil disimpan dan akan berlaku untuk semua bulan",
+        description: "Pengaturan bagi hasil global berhasil disimpan dan akan berlaku untuk semua franchise",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Gagal menyimpan pengaturan bagi hasil",
+        description: "Gagal menyimpan pengaturan bagi hasil global",
         variant: "destructive",
       });
     } finally {
@@ -146,121 +97,128 @@ const ProfitSharingPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
-        <Settings className="h-6 w-6 text-primary" />
+        <Globe className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-bold text-foreground">Pengaturan Bagi Hasil Global</h1>
       </div>
       
       <div className="bg-info/10 border border-info/20 rounded-lg p-4 mb-4">
-        <p className="text-sm text-info-foreground">
-          ℹ️ Pengaturan ini akan berlaku untuk semua bulan dan tahun. Sekali mengubah persentase, maka akan langsung diterapkan pada semua perhitungan bagi hasil.
-        </p>
+        <div className="flex items-start gap-3">
+          <Settings className="h-5 w-5 text-info mt-0.5" />
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-info-foreground">
+              Pengaturan Global untuk Semua Franchise
+            </p>
+            <p className="text-xs text-info-foreground/80">
+              • Pengaturan ini berlaku untuk <strong>semua franchise</strong> tanpa kecuali<br/>
+              • Sekali mengubah persentase, semua franchise akan mengikuti pengaturan yang sama<br/>
+              • Berlaku untuk semua bulan dan tahun (masa lalu, sekarang, dan masa depan)
+            </p>
+          </div>
+        </div>
       </div>
 
       <Card className="border-border bg-card">
         <CardHeader className="border-b border-border">
           <CardTitle className="flex items-center gap-2 text-card-foreground">
             <Percent className="h-5 w-5 text-primary" />
-            Atur Persentase Global Bagi Hasil
+            Atur Persentase Bagi Hasil Global
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          {/* Franchise Selection */}
-          <div className="space-y-2">
-            <Label htmlFor="franchise">Pilih Franchise</Label>
-            <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
-              <SelectTrigger>
-                <SelectValue placeholder="Pilih franchise..." />
-              </SelectTrigger>
-              <SelectContent>
-                {franchises.map((franchise) => (
-                  <SelectItem key={franchise.id} value={franchise.id}>
-                    {franchise.name} ({franchise.franchise_id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Percentage Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-percentage">Persentase Super Admin (%)</Label>
+                <Input
+                  id="admin-percentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={adminPercentage}
+                  onChange={(e) => handleAdminPercentageChange(Number(e.target.value))}
+                  className="text-lg font-semibold"
+                  disabled={loading}
+                />
+              </div>
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-primary">{adminPercentage}%</div>
+                  <div className="text-sm text-muted-foreground">Bagian Super Admin</div>
+                  <div className="text-xs text-muted-foreground mt-1">Berlaku untuk semua franchise</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="franchise-percentage">Persentase Franchise (%)</Label>
+                <Input
+                  id="franchise-percentage"
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={franchisePercentage}
+                  onChange={(e) => handleFranchisePercentageChange(Number(e.target.value))}
+                  className="text-lg font-semibold"
+                  disabled={loading}
+                />
+              </div>
+              <div className="p-4 bg-success/5 rounded-lg border border-success/10">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-success">{franchisePercentage}%</div>
+                  <div className="text-sm text-muted-foreground">Bagian Franchise</div>
+                  <div className="text-xs text-muted-foreground mt-1">Berlaku untuk semua franchise</div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Percentage Settings */}
-          {selectedFranchise && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="admin-percentage">Persentase Super Admin (%)</Label>
-                  <Input
-                    id="admin-percentage"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={adminPercentage}
-                    onChange={(e) => handleAdminPercentageChange(Number(e.target.value))}
-                    className="text-lg font-semibold"
-                  />
-                </div>
-                <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{adminPercentage}%</div>
-                    <div className="text-sm text-muted-foreground">Bagian Super Admin</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="franchise-percentage">Persentase Franchise (%)</Label>
-                  <Input
-                    id="franchise-percentage"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={franchisePercentage}
-                    onChange={(e) => handleFranchisePercentageChange(Number(e.target.value))}
-                    className="text-lg font-semibold"
-                  />
-                </div>
-                <div className="p-4 bg-success/5 rounded-lg border border-success/10">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">{franchisePercentage}%</div>
-                    <div className="text-sm text-muted-foreground">Bagian Franchise</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Summary */}
-          {selectedFranchise && (
-            <div className="p-4 bg-muted/30 rounded-lg border border-border">
-              <div className="text-center space-y-2">
-                <div className="text-sm text-muted-foreground">Pengaturan Berlaku untuk Semua Bulan</div>
-                <div className="text-lg font-bold text-foreground">
-                  Admin: {adminPercentage}% | Franchise: {franchisePercentage}%
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  Persentase ini akan diterapkan pada semua perhitungan bagi hasil
-                </div>
-                {adminPercentage + franchisePercentage !== 100 && (
-                  <div className="text-sm text-destructive">
-                    ⚠️ Total harus 100%
-                  </div>
-                )}
+          <div className="p-4 bg-muted/30 rounded-lg border border-border">
+            <div className="text-center space-y-2">
+              <div className="text-sm text-muted-foreground">Pengaturan Global Aktif</div>
+              <div className="text-lg font-bold text-foreground">
+                Super Admin: {adminPercentage}% | Semua Franchise: {franchisePercentage}%
               </div>
+              <div className="text-xs text-muted-foreground">
+                Persentase ini akan diterapkan pada <strong>SEMUA</strong> franchise dan perhitungan bagi hasil
+              </div>
+              {adminPercentage + franchisePercentage !== 100 && (
+                <div className="text-sm text-destructive">
+                  ⚠️ Total harus 100%
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
           {/* Save Button */}
-          {selectedFranchise && (
-            <div className="flex justify-end">
-              <Button 
-                onClick={saveProfitSharing}
-                disabled={saving || loading || adminPercentage + franchisePercentage !== 100}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Menyimpan...' : 'Simpan Pengaturan Global'}
-              </Button>
+          <div className="flex justify-end">
+            <Button 
+              onClick={saveGlobalProfitSettings}
+              disabled={saving || loading || adminPercentage + franchisePercentage !== 100}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? 'Menyimpan...' : 'Simpan Pengaturan Global'}
+            </Button>
+          </div>
+
+          {/* Warning */}
+          <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="text-warning text-lg">⚠️</div>
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-warning-foreground">
+                  Perhatian: Pengaturan Global
+                </p>
+                <p className="text-xs text-warning-foreground/80">
+                  Sekali Anda menyimpan pengaturan ini, <strong>SEMUA franchise</strong> akan menggunakan persentase yang sama. 
+                  Tidak ada pengaturan individual per franchise lagi.
+                </p>
+              </div>
             </div>
-          )}
+          </div>
         </CardContent>
       </Card>
     </div>
