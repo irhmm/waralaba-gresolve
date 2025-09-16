@@ -31,11 +31,6 @@ import {
 const menuItems = {
   super_admin: [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
-    },
-    {
       title: 'List Franchise',
       url: '/admin/franchises',
       icon: Building2,
@@ -67,11 +62,6 @@ const menuItems = {
     },
   ],
   franchise: [
-    {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
-    },
     {
       title: 'Pendapatan Worker',
       url: '/worker-income',
@@ -105,11 +95,6 @@ const menuItems = {
   ],
   admin_keuangan: [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
-    },
-    {
       title: 'Pendapatan Worker',
       url: '/worker-income',
       icon: DollarSign,
@@ -142,11 +127,6 @@ const menuItems = {
   ],
   admin_marketing: [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
-    },
-    {
       title: 'Pendapatan Admin',
       url: '/admin-income',
       icon: TrendingUp,
@@ -158,11 +138,6 @@ const menuItems = {
     },
   ],
   user: [
-    {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
-    },
     {
       title: 'Pendapatan Worker',
       url: '/worker-income',
