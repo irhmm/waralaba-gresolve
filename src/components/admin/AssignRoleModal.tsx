@@ -33,7 +33,7 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
 
   // Load franchises when role requires franchise scope
   React.useEffect(() => {
-    if (selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing') {
+    if (selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing' || selectedRole === 'user') {
       loadFranchises();
     }
   }, [selectedRole]);
@@ -93,7 +93,7 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
     }
 
     // Franchise validation for specific roles
-    if ((selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing') && !franchiseId) {
+    if ((selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing' || selectedRole === 'user') && !franchiseId) {
       toast({
         title: "Error", 
         description: "Franchise harus dipilih untuk role ini",
@@ -257,14 +257,14 @@ export const AssignRoleModal: React.FC<AssignRoleModalProps> = ({ onRoleAssigned
             </Select>
           </div>
 
-          {(selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing') && (
+          {(selectedRole === 'franchise' || selectedRole === 'admin_keuangan' || selectedRole === 'admin_marketing' || selectedRole === 'user') && (
             <div>
               <Label htmlFor="franchise">Franchise</Label>
               <Select value={franchiseId} onValueChange={setFranchiseId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih franchise" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-50 bg-white">
                   {franchises.map((franchise) => (
                     <SelectItem key={franchise.id} value={franchise.id}>
                       {franchise.name} ({franchise.franchise_id})
