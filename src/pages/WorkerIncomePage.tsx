@@ -306,6 +306,11 @@ export default function WorkerIncomePage() {
 
       {/* Monthly Summary Cards */}
       {Object.keys(groupedData).length > 0 && (
+        userRole?.role !== 'user' || 
+        searchTerm || 
+        (selectedMonth && selectedMonth !== 'all') || 
+        (selectedWorker && selectedWorker !== 'all')
+      ) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(groupedData)
             .sort(([a], [b]) => b.localeCompare(a))
