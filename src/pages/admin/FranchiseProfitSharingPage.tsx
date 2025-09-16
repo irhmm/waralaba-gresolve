@@ -4,11 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Download, Check, ChevronsUpDown } from "lucide-react";
+import { Search, Filter, Download, Check, ChevronsUpDown, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +29,10 @@ export default function FranchiseProfitSharingPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), "yyyy-MM"));
   const [monthSearchOpen, setMonthSearchOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<FranchiseProfitData | null>(null);
+  const [editPercentage, setEditPercentage] = useState(0);
+  const [editPaymentStatus, setEditPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid');
   const { toast } = useToast();
 
   // Get available months that have data from franchise_profit_sharing
@@ -125,26 +132,32 @@ export default function FranchiseProfitSharingPage() {
     },
   });
 
-  const togglePaymentStatus = useMutation({
-    mutationFn: async (args: { franchise_id: string; newStatus: 'paid' | 'unpaid' }) => {
-      const { error } = await supabase
-        .from('franchise_profit_sharing')
-        .update({ payment_status: args.newStatus })
-        .eq('franchise_id', args.franchise_id)
-        .eq('month_year', selectedMonth);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: 'Berhasil', description: 'Status pembayaran diperbarui.' });
-      queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing', selectedMonth] });
-    },
-    onError: (error: any) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
+  // Helper functions for edit modal
+  const openEditModal = (item: FranchiseProfitData) => {
+    setEditingItem(item);
+    setEditPercentage(item.admin_percentage);
+    setEditPaymentStatus(item.payment_status);
+    setEditModalOpen(true);
+  };
 
-  const updateAdminPercentage = useMutation({
-    mutationFn: async (args: { franchise_id: string; newPercentage: number; monthlyRevenue: number }) => {
+  const handleSaveEdit = () => {
+    if (!editingItem) return;
+    
+    updateFranchiseData.mutate({
+      franchise_id: editingItem.franchise_id,
+      newPercentage: editPercentage,
+      newPaymentStatus: editPaymentStatus,
+      monthlyRevenue: editingItem.monthly_revenue
+    });
+  };
+
+  const updateFranchiseData = useMutation({
+    mutationFn: async (args: { 
+      franchise_id: string; 
+      newPercentage: number; 
+      newPaymentStatus: 'paid' | 'unpaid';
+      monthlyRevenue: number 
+    }) => {
       const newShare = Math.round((args.monthlyRevenue * args.newPercentage) / 100);
       const newFranchisePercentage = 100 - args.newPercentage;
       const { error } = await supabase
@@ -152,15 +165,18 @@ export default function FranchiseProfitSharingPage() {
         .update({ 
           admin_percentage: args.newPercentage, 
           franchise_percentage: newFranchisePercentage,
-          share_nominal: newShare 
+          share_nominal: newShare,
+          payment_status: args.newPaymentStatus
         })
         .eq('franchise_id', args.franchise_id)
         .eq('month_year', selectedMonth);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: 'Berhasil', description: 'Persentase admin diperbarui.' });
+      toast({ title: 'Berhasil', description: 'Data franchise berhasil diperbarui.' });
       queryClient.invalidateQueries({ queryKey: ['franchise-profit-sharing', selectedMonth] });
+      setEditModalOpen(false);
+      setEditingItem(null);
     },
     onError: (error: any) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -409,42 +425,23 @@ export default function FranchiseProfitSharingPage() {
                       <TableCell className="text-center space-x-2">
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            togglePaymentStatus.mutate({
-                              franchise_id: item.franchise_id,
-                              newStatus: item.payment_status === 'paid' ? 'unpaid' : 'paid',
-                            })
-                          }
+                          variant="ghost"
+                          onClick={() => openEditModal(item)}
+                          className="h-8 w-8 p-0 hover:bg-primary/10"
                         >
-                          {item.payment_status === 'paid' ? 'Tandai Belum' : 'Tandai Dibayar'}
+                          <Edit className="h-4 w-4 text-primary" />
                         </Button>
                         <Button
                           size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            const input = window.prompt('Persentase admin (%)', String(item.admin_percentage));
-                            if (input === null) return;
-                            const num = Number(input);
-                            if (isNaN(num) || num < 0 || num > 100) {
-                              toast({ title: 'Input tidak valid', description: 'Masukkan angka 0-100', variant: 'destructive' });
-                              return;
-                            }
-                            updateAdminPercentage.mutate({ franchise_id: item.franchise_id, newPercentage: num, monthlyRevenue: item.monthly_revenue });
-                          }}
-                        >
-                          Ubah %
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
+                          variant="ghost"
                           onClick={() => {
                             if (confirm('Hapus data bagi hasil ini?')) {
                               deleteRow.mutate({ franchise_id: item.franchise_id });
                             }
                           }}
+                          className="h-8 w-8 p-0 hover:bg-destructive/10"
                         >
-                          Hapus
+                          <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -455,6 +452,93 @@ export default function FranchiseProfitSharingPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[500px] bg-card border-border rounded-lg">
+          <DialogHeader>
+            <DialogTitle className="text-card-foreground">
+              Edit Data Bagi Hasil - {editingItem?.franchise_name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-percentage" className="text-sm font-medium text-foreground">
+                Persentase Bagi Hasil Admin (%)
+              </Label>
+              <Input
+                id="edit-percentage"
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                value={editPercentage}
+                onChange={(e) => setEditPercentage(Number(e.target.value))}
+                className="border-border bg-background text-foreground"
+              />
+              <div className="text-xs text-muted-foreground">
+                Persentase franchise: {100 - editPercentage}%
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-payment-status" className="text-sm font-medium text-foreground">
+                Status Pembayaran
+              </Label>
+              <Select value={editPaymentStatus} onValueChange={(value: 'paid' | 'unpaid') => setEditPaymentStatus(value)}>
+                <SelectTrigger className="border-border bg-background text-foreground">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-background border-border">
+                  <SelectItem value="unpaid" className="text-foreground hover:bg-muted">
+                    Belum Dibayar
+                  </SelectItem>
+                  <SelectItem value="paid" className="text-foreground hover:bg-muted">
+                    Sudah Dibayar
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {editingItem && (
+              <div className="p-4 bg-muted/30 rounded-lg border border-border">
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Total Pendapatan:</span>
+                    <span className="font-medium text-foreground">
+                      {formatCurrency(editingItem.monthly_revenue)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Nominal Bagi Hasil:</span>
+                    <span className="font-bold text-primary">
+                      {formatCurrency(Math.round((editingItem.monthly_revenue * editPercentage) / 100))}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-2 pt-4 border-t border-border">
+            <Button
+              variant="outline"
+              onClick={() => setEditModalOpen(false)}
+              className="border-border text-foreground hover:bg-muted"
+            >
+              Batal
+            </Button>
+            <Button
+              onClick={handleSaveEdit}
+              disabled={editPercentage < 0 || editPercentage > 100}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Simpan Perubahan
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
