@@ -61,8 +61,9 @@ export default function WorkerIncomePage() {
   const [selectedWorker, setSelectedWorker] = useState('all');
   const [workerSearchTerm, setWorkerSearchTerm] = useState('');
 
-  const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role);
   const isSuperAdmin = userRole?.role === 'super_admin';
+  const isUser = userRole?.role === 'user';
+  const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role) && !isUser;
 
   useEffect(() => {
     fetchData();
@@ -281,7 +282,7 @@ export default function WorkerIncomePage() {
   return (
     <div className="space-y-6">
       {/* Super Admin Franchise Selector */}
-      {isSuperAdmin && (
+      {isSuperAdmin && !isUser && (
         <Card>
           <CardHeader>
             <CardTitle>Pilih Franchise</CardTitle>
@@ -409,12 +410,14 @@ export default function WorkerIncomePage() {
                 </PopoverContent>
               </Popover>
               
-              <Button variant="outline" onClick={handleExport} className="text-blue-600">
-                <Download className="h-4 w-4" />
-                Export
-              </Button>
+              {!isUser && (
+                <Button variant="outline" onClick={handleExport} className="text-blue-600">
+                  <Download className="h-4 w-4" />
+                  Export
+                </Button>
+              )}
               
-              {canWrite && (
+              {canWrite && !isUser && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {
@@ -491,7 +494,7 @@ export default function WorkerIncomePage() {
           <div>
             <CardTitle>Pendapatan Worker</CardTitle>
             <CardDescription>
-              Kelola data pendapatan worker franchise
+              {isUser ? 'Lihat data pendapatan worker franchise' : 'Kelola data pendapatan worker franchise'}
             </CardDescription>
           </div>
         </CardHeader>

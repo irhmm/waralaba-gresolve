@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import AuthPage from "./components/auth/AuthPage";
 import AppLayout from "./components/layout/AppLayout";
+import RouteGuard from "./components/auth/RouteGuard";
 import Dashboard from "./pages/Dashboard";
 import FranchisesPage from "./pages/FranchisesPage";
 import ListFranchisePage from "./pages/admin/ListFranchisePage";
@@ -32,18 +33,18 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<AppLayout />}>
-              <Route index element={<Dashboard />} />
-              <Route path="franchises" element={<FranchisesPage />} />
-              <Route path="admin/franchises" element={<ListFranchisePage />} />
-              <Route path="admin/franchises/new" element={<AddFranchisePage />} />
-              <Route path="admin/profit-sharing" element={<ProfitSharingPage />} />
-              <Route path="admin/profit-sharing-settings" element={<ProfitSharingSettingsPage />} />
-              <Route path="admin/franchise-profit-sharing" element={<FranchiseProfitSharingPage />} />
-              <Route path="admin-income" element={<AdminIncomePage />} />
-              <Route path="worker-income" element={<WorkerIncomePage />} />
-              <Route path="expenses" element={<ExpensesPage />} />
-              <Route path="workers" element={<WorkersPage />} />
-              <Route path="financial-report" element={<FinancialReportPage />} />
+              <Route index element={<RouteGuard><Dashboard /></RouteGuard>} />
+              <Route path="franchises" element={<RouteGuard><FranchisesPage /></RouteGuard>} />
+              <Route path="admin/franchises" element={<RouteGuard><ListFranchisePage /></RouteGuard>} />
+              <Route path="admin/franchises/new" element={<RouteGuard><AddFranchisePage /></RouteGuard>} />
+              <Route path="admin/profit-sharing" element={<RouteGuard><ProfitSharingPage /></RouteGuard>} />
+              <Route path="admin/profit-sharing-settings" element={<RouteGuard><ProfitSharingSettingsPage /></RouteGuard>} />
+              <Route path="admin/franchise-profit-sharing" element={<RouteGuard><FranchiseProfitSharingPage /></RouteGuard>} />
+              <Route path="admin-income" element={<RouteGuard><AdminIncomePage /></RouteGuard>} />
+              <Route path="worker-income" element={<RouteGuard><WorkerIncomePage /></RouteGuard>} />
+              <Route path="expenses" element={<RouteGuard><ExpensesPage /></RouteGuard>} />
+              <Route path="workers" element={<RouteGuard><WorkersPage /></RouteGuard>} />
+              <Route path="financial-report" element={<RouteGuard><FinancialReportPage /></RouteGuard>} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
