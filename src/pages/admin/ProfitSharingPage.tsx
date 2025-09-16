@@ -62,21 +62,23 @@ const ProfitSharingPage = () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .rpc('get_global_franchise_profit_settings', {
-          target_franchise_id: selectedFranchise
-        });
+        .from('franchise_profit_settings')
+        .select('admin_percentage, franchise_percentage')
+        .eq('franchise_id', selectedFranchise)
+        .maybeSingle();
 
       if (error) throw error;
       
-      if (data && data.length > 0) {
-        setAdminPercentage(data[0].admin_percentage);
-        setFranchisePercentage(data[0].franchise_percentage);
+      if (data) {
+        setAdminPercentage(Number(data.admin_percentage));
+        setFranchisePercentage(Number(data.franchise_percentage));
       } else {
         // Default values
         setAdminPercentage(20);
         setFranchisePercentage(80);
       }
     } catch (error) {
+      console.error('Fetch profit settings error:', error);
       toast({
         title: "Error",
         description: "Gagal memuat pengaturan bagi hasil",
