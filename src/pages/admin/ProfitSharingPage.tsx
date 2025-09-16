@@ -4,11 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MonthSelector } from '@/components/ui/month-selector';
 import { Settings, Save, Percent } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
 
 interface Franchise {
   id: string;
@@ -16,9 +14,8 @@ interface Franchise {
   franchise_id: string;
 }
 
-interface ProfitSharing {
+interface GlobalProfitSettings {
   franchise_id: string;
-  month_year: string;
   admin_percentage: number;
   franchise_percentage: number;
 }
@@ -26,7 +23,6 @@ interface ProfitSharing {
 const ProfitSharingPage = () => {
   const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [selectedFranchise, setSelectedFranchise] = useState<string>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
   const [adminPercentage, setAdminPercentage] = useState<number>(20);
   const [franchisePercentage, setFranchisePercentage] = useState<number>(80);
   const [loading, setLoading] = useState(false);
@@ -38,10 +34,10 @@ const ProfitSharingPage = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedFranchise && selectedMonth) {
-      fetchProfitSharing();
+    if (selectedFranchise) {
+      fetchGlobalProfitSettings();
     }
-  }, [selectedFranchise, selectedMonth]);
+  }, [selectedFranchise]);
 
   const fetchFranchises = async () => {
     try {
@@ -61,13 +57,12 @@ const ProfitSharingPage = () => {
     }
   };
 
-  const fetchProfitSharing = async () => {
+  const fetchGlobalProfitSettings = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .rpc('get_franchise_profit_sharing', {
-          target_franchise_id: selectedFranchise,
-          target_month: selectedMonth
+        .rpc('get_global_franchise_profit_settings', {
+          target_franchise_id: selectedFranchise
         });
 
       if (error) throw error;
@@ -105,11 +100,11 @@ const ProfitSharingPage = () => {
     }
   };
 
-  const saveProfitSharing = async () => {
-    if (!selectedFranchise || !selectedMonth) {
+  const saveGlobalProfitSettings = async () => {
+    if (!selectedFranchise) {
       toast({
         title: "Error",
-        description: "Pilih franchise dan bulan terlebih dahulu",
+        description: "Pilih franchise terlebih dahulu",
         variant: "destructive",
       });
       return;
@@ -120,22 +115,21 @@ const ProfitSharingPage = () => {
       const { data: userData } = await supabase.auth.getUser();
       
       const { error } = await supabase
-        .from('franchise_profit_sharing')
+        .from('franchise_profit_settings')
         .upsert({
           franchise_id: selectedFranchise,
-          month_year: selectedMonth,
           admin_percentage: adminPercentage,
           franchise_percentage: franchisePercentage,
           created_by: userData.user?.id
         }, {
-          onConflict: 'franchise_id,month_year'
+          onConflict: 'franchise_id'
         });
 
       if (error) throw error;
 
       toast({
         title: "Berhasil",
-        description: "Pengaturan bagi hasil berhasil disimpan",
+        description: "Pengaturan bagi hasil global berhasil disimpan. Pengaturan ini akan berlaku untuk semua bulan.",
       });
     } catch (error) {
       toast({
@@ -164,36 +158,35 @@ const ProfitSharingPage = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 pt-6">
-          {/* Franchise and Month Selection */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="franchise">Pilih Franchise</Label>
-              <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih franchise..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {franchises.map((franchise) => (
-                    <SelectItem key={franchise.id} value={franchise.id}>
-                      {franchise.name} ({franchise.franchise_id})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <MonthSelector
-              value={selectedMonth}
-              onValueChange={setSelectedMonth}
-              tables={['franchise_profit_sharing']}
-              label="Pilih Bulan"
-              placeholder="Pilih bulan..."
-              showSearch={true}
-            />
+          {/* Franchise Selection */}
+          <div className="space-y-2">
+            <Label htmlFor="franchise">Pilih Franchise</Label>
+            <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih franchise..." />
+              </SelectTrigger>
+              <SelectContent>
+                {franchises.map((franchise) => (
+                  <SelectItem key={franchise.id} value={franchise.id}>
+                    {franchise.name} ({franchise.franchise_id})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Information Alert */}
+          {selectedFranchise && (
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-sm text-blue-800">
+                <strong>📋 Informasi:</strong> Pengaturan persentase bagi hasil ini akan berlaku untuk <strong>semua bulan dan tahun</strong>. 
+                Setelah disimpan, perhitungan bagi hasil untuk semua periode akan menggunakan persentase yang baru.
+              </div>
+            </div>
+          )}
+
           {/* Percentage Settings */}
-          {selectedFranchise && selectedMonth && (
+          {selectedFranchise && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -240,7 +233,7 @@ const ProfitSharingPage = () => {
           )}
 
           {/* Summary */}
-          {selectedFranchise && selectedMonth && (
+          {selectedFranchise && (
             <div className="p-4 bg-muted/30 rounded-lg border border-border">
               <div className="text-center space-y-2">
                 <div className="text-sm text-muted-foreground">Total Persentase</div>
@@ -257,15 +250,15 @@ const ProfitSharingPage = () => {
           )}
 
           {/* Save Button */}
-          {selectedFranchise && selectedMonth && (
+          {selectedFranchise && (
             <div className="flex justify-end">
               <Button 
-                onClick={saveProfitSharing}
+                onClick={saveGlobalProfitSettings}
                 disabled={saving || loading || adminPercentage + franchisePercentage !== 100}
                 className="bg-primary hover:bg-primary/90"
               >
                 <Save className="h-4 w-4 mr-2" />
-                {saving ? 'Menyimpan...' : 'Simpan Pengaturan'}
+                {saving ? 'Menyimpan...' : 'Simpan Pengaturan Global'}
               </Button>
             </div>
           )}
