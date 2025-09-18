@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download, Filter } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
@@ -22,16 +22,10 @@ interface WorkerIncome {
   code: string;
   jobdesk: string;
   fee: number;
-  worker_id: string | null;
-  worker_name: string | null;
+  worker_name: string;
   tanggal: string;
   franchise_id: string;
   created_by: string;
-}
-
-interface Worker {
-  id: string;
-  nama: string;
 }
 
 interface Franchise {
@@ -44,7 +38,6 @@ export default function WorkerIncomePage() {
   const { userRole, user } = useAuth();
   const { toast } = useToast();
   const [workerIncomes, setWorkerIncomes] = useState<WorkerIncome[]>([]);
-  const [workers, setWorkers] = useState<Worker[]>([]);
   const [franchises, setFranchises] = useState<Franchise[]>([]);
   const [selectedFranchise, setSelectedFranchise] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -54,16 +47,13 @@ export default function WorkerIncomePage() {
     code: '',
     jobdesk: '',
     fee: '',
-    worker_id: '',
     worker_name: '',
-    inputMode: 'select' as 'select' | 'manual',
   });
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedWorker, setSelectedWorker] = useState('all');
-  const [workerSearchTerm, setWorkerSearchTerm] = useState('');
 
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -124,21 +114,6 @@ export default function WorkerIncomePage() {
 
       if (incomeError) throw incomeError;
       setWorkerIncomes(incomeData || []);
-
-      // Fetch workers for the dropdown
-      let workersQuery = supabase
-        .from('workers')
-        .select('id, nama')
-        .eq('status', 'active');
-
-      if (franchiseId) {
-        workersQuery = workersQuery.eq('franchise_id', franchiseId);
-      }
-
-      const { data: workersData, error: workersError } = await workersQuery;
-
-      if (workersError) throw workersError;
-      setWorkers(workersData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       toast({
@@ -151,18 +126,6 @@ export default function WorkerIncomePage() {
     }
   };
 
-  const getWorkerName = (item: WorkerIncome) => {
-    // Priority: worker_name (manual input) > worker from workers table
-    if (item.worker_name) {
-      return item.worker_name;
-    }
-    if (item.worker_id) {
-      const worker = workers.find(w => w.id === item.worker_id);
-      return worker?.nama || 'Unknown Worker';
-    }
-    return 'Unknown Worker';
-  };
-
   // Filtered and grouped data
   const filteredData = useMemo(() => {
     let filtered = workerIncomes;
@@ -170,9 +133,9 @@ export default function WorkerIncomePage() {
     // Global search
     if (searchTerm) {
       filtered = filtered.filter(item =>
-        item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.jobdesk.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getWorkerName(item).toLowerCase().includes(searchTerm.toLowerCase())
+        item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.jobdesk?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.worker_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -187,13 +150,12 @@ export default function WorkerIncomePage() {
     // Worker filter
     if (selectedWorker && selectedWorker !== 'all') {
       filtered = filtered.filter(item => 
-        item.worker_id === selectedWorker || 
-        (item.worker_name && item.worker_name.toLowerCase().includes(selectedWorker.toLowerCase()))
+        item.worker_name?.toLowerCase().includes(selectedWorker.toLowerCase())
       );
     }
 
     return filtered;
-  }, [workerIncomes, searchTerm, selectedMonth, selectedWorker, workers]);
+  }, [workerIncomes, searchTerm, selectedMonth, selectedWorker]);
 
   const groupedData = useMemo(() => {
     const grouped = groupDataByMonth(filteredData);
@@ -215,15 +177,18 @@ export default function WorkerIncomePage() {
 
   const availableMonths = useMemo(() => getAvailableMonths(workerIncomes), [workerIncomes]);
 
-  const filteredWorkers = useMemo(() => {
-    if (!workerSearchTerm) return workers;
-    return workers.filter(worker => 
-      worker.nama.toLowerCase().includes(workerSearchTerm.toLowerCase())
-    );
-  }, [workers, workerSearchTerm]);
+  // Get unique worker names for filter
+  const uniqueWorkerNames = useMemo(() => {
+    const names = workerIncomes
+      .filter(item => item.worker_name)
+      .map(item => item.worker_name)
+      .filter((name, index, arr) => arr.indexOf(name) === index)
+      .sort();
+    return names;
+  }, [workerIncomes]);
 
   const handleExport = () => {
-    exportWorkerIncomeToExcel(filteredData, workers);
+    exportWorkerIncomeToExcel(filteredData, []);
     toast({ title: "Success", description: "Data exported to Excel successfully!" });
   };
 
@@ -239,8 +204,8 @@ export default function WorkerIncomePage() {
         code: formData.code,
         jobdesk: formData.jobdesk,
         fee: parseFloat(formData.fee),
-        worker_id: formData.inputMode === 'select' ? formData.worker_id : null,
-        worker_name: formData.inputMode === 'manual' ? formData.worker_name : null,
+        worker_id: null,
+        worker_name: formData.worker_name,
         franchise_id: franchiseId,
         created_by: user.id,
       };
@@ -264,7 +229,7 @@ export default function WorkerIncomePage() {
 
       setDialogOpen(false);
       setEditingItem(null);
-      setFormData({ code: '', jobdesk: '', fee: '', worker_id: '', worker_name: '', inputMode: 'select' });
+      setFormData({ code: '', jobdesk: '', fee: '', worker_name: '' });
       fetchData();
     } catch (error) {
       console.error('Error saving worker income:', error);
@@ -282,9 +247,7 @@ export default function WorkerIncomePage() {
       code: item.code,
       jobdesk: item.jobdesk,
       fee: item.fee.toString(),
-      worker_id: item.worker_id || '',
       worker_name: item.worker_name || '',
-      inputMode: item.worker_name ? 'manual' : 'select',
     });
     setDialogOpen(true);
   };
@@ -376,7 +339,7 @@ export default function WorkerIncomePage() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Cari berdasarkan code, jobdesk..."
+                placeholder="Cari berdasarkan code, jobdesk, nama worker..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-9"
@@ -416,9 +379,9 @@ export default function WorkerIncomePage() {
                           </SelectTrigger>
                           <SelectContent className="z-50 bg-white">
                             <SelectItem value="all">Semua Worker</SelectItem>
-                            {filteredWorkers.map((worker) => (
-                              <SelectItem key={worker.id} value={worker.id}>
-                                {worker.nama}
+                            {uniqueWorkerNames.map((workerName) => (
+                              <SelectItem key={workerName} value={workerName}>
+                                {workerName}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -454,7 +417,7 @@ export default function WorkerIncomePage() {
                   <DialogTrigger asChild>
                      <Button onClick={() => {
                        setEditingItem(null);
-                       setFormData({ code: '', jobdesk: '', fee: '', worker_id: '', worker_name: '', inputMode: 'select' });
+                       setFormData({ code: '', jobdesk: '', fee: '', worker_name: '' });
                      }} className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="h-4 w-4" />
                       Tambah Data
@@ -495,131 +458,110 @@ export default function WorkerIncomePage() {
                         required
                       />
                     </div>
-                     <div>
-                       <Label htmlFor="inputMode">Mode Input Worker</Label>
-                       <Select 
-                         value={formData.inputMode} 
-                         onValueChange={(value: 'select' | 'manual') => 
-                           setFormData({ ...formData, inputMode: value, worker_id: '', worker_name: '' })
-                         }
-                       >
-                         <SelectTrigger>
-                           <SelectValue />
-                         </SelectTrigger>
-                         <SelectContent>
-                           <SelectItem value="select">Pilih dari Data Worker</SelectItem>
-                           <SelectItem value="manual">Input Manual</SelectItem>
-                         </SelectContent>
-                       </Select>
-                     </div>
-                     
-                     {formData.inputMode === 'select' ? (
-                       <div>
-                         <Label htmlFor="worker">Worker</Label>
-                         <Select 
-                           value={formData.worker_id} 
-                           onValueChange={(value) => setFormData({ ...formData, worker_id: value })}
-                         >
-                           <SelectTrigger>
-                             <SelectValue placeholder="Pilih worker" />
-                           </SelectTrigger>
-                           <SelectContent>
-                             {workers.map((worker) => (
-                               <SelectItem key={worker.id} value={worker.id}>
-                                 {worker.nama}
-                               </SelectItem>
-                             ))}
-                           </SelectContent>
-                         </Select>
-                       </div>
-                     ) : (
-                       <div>
-                         <Label htmlFor="worker_name">Nama Worker</Label>
-                         <Input
-                           id="worker_name"
-                           value={formData.worker_name}
-                           onChange={(e) => setFormData({ ...formData, worker_name: e.target.value })}
-                           placeholder="Masukkan nama worker"
-                           required
-                         />
-                       </div>
-                     )}
-                    <Button type="submit" className="w-full">
-                      {editingItem ? 'Update' : 'Tambah'} Pendapatan
-                    </Button>
+                    <div>
+                      <Label htmlFor="worker_name">Nama Worker</Label>
+                      <Input
+                        id="worker_name"
+                        value={formData.worker_name}
+                        onChange={(e) => setFormData({ ...formData, worker_name: e.target.value })}
+                        placeholder="Masukkan nama worker"
+                        required
+                      />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+                        Batal
+                      </Button>
+                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                        {editingItem ? 'Update' : 'Simpan'}
+                      </Button>
+                    </div>
                   </form>
                 </DialogContent>
               </Dialog>
-            )}
+              )}
             </div>
           </div>
-          
-          <div>
-            <CardTitle>Pendapatan Worker</CardTitle>
-            <CardDescription>
-              {isUser ? 'Lihat data pendapatan worker franchise' : 'Kelola data pendapatan worker franchise'}
-            </CardDescription>
-          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Data Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Data Pendapatan Worker</CardTitle>
+          <CardDescription>
+            Total: {filteredData.length} data | 
+            Total Fee: Rp {filteredData.reduce((sum, item) => sum + item.fee, 0).toLocaleString('id-ID')}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Kode</TableHead>
-                <TableHead>Job Desk</TableHead>
-                <TableHead>Worker</TableHead>
-                <TableHead>Fee</TableHead>
-                <TableHead>Tanggal</TableHead>
-                {canWrite && <TableHead>Aksi</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.map((item) => (
-                <TableRow key={item.id} className="hover:bg-blue-50/50">
-                  <TableCell>{item.code}</TableCell>
-                  <TableCell>{item.jobdesk}</TableCell>
-                  <TableCell>{getWorkerName(item)}</TableCell>
-                  <TableCell>Rp {item.fee.toLocaleString('id-ID')}</TableCell>
-                  <TableCell>{format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')}</TableCell>
-                  {canWrite && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline" onClick={() => handleEdit(item)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleDelete(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-              {paginatedData.length === 0 && (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={canWrite ? 6 : 5} className="text-center text-muted-foreground">
-                    {searchTerm || (selectedMonth && selectedMonth !== 'all') || (selectedWorker && selectedWorker !== 'all')
-                      ? 'Tidak ada data yang sesuai dengan filter' 
-                      : 'Belum ada data pendapatan worker'
-                    }
-                  </TableCell>
+                  <TableHead>Kode</TableHead>
+                  <TableHead>Job Desk</TableHead>
+                  <TableHead>Nama Worker</TableHead>
+                  <TableHead>Fee</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  {canWrite && <TableHead className="w-[100px]">Aksi</TableHead>}
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-
-          <DataTablePagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            pageSize={pageSize}
-            totalItems={filteredData.length}
-            onPageChange={setCurrentPage}
-            onPageSizeChange={setPageSize}
-          />
+              </TableHeader>
+              <TableBody>
+                {paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={canWrite ? 6 : 5} className="h-24 text-center">
+                      Tidak ada data.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.code}</TableCell>
+                      <TableCell>{item.jobdesk}</TableCell>
+                      <TableCell>{item.worker_name || 'N/A'}</TableCell>
+                      <TableCell>Rp {item.fee.toLocaleString('id-ID')}</TableCell>
+                      <TableCell>{format(new Date(item.tanggal), 'dd/MM/yyyy')}</TableCell>
+                      {canWrite && (
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEdit(item)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          
+          <div className="mt-4">
+            <DataTablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={filteredData.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setCurrentPage(1);
+              }}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
