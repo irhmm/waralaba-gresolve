@@ -163,10 +163,11 @@ export default function WorkerIncomePage() {
   }, [filteredData]);
 
   // Pagination logic  
-  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / Math.max(1, pageSize)));
   const paginatedData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
+    const safePageSize = Math.max(1, pageSize);
+    const startIndex = (currentPage - 1) * safePageSize;
+    const endIndex = startIndex + safePageSize;
     return filteredData.slice(startIndex, endIndex);
   }, [filteredData, currentPage, pageSize]);
 
@@ -549,19 +550,22 @@ export default function WorkerIncomePage() {
             </Table>
           </div>
           
-          <div className="mt-4">
-            <DataTablePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              pageSize={pageSize}
-              totalItems={filteredData.length}
-              onPageChange={setCurrentPage}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setCurrentPage(1);
-              }}
-            />
-          </div>
+          {totalPages > 0 && pageSize > 0 && (
+            <div className="mt-4">
+              <DataTablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                pageSize={pageSize}
+                totalItems={filteredData.length}
+                onPageChange={setCurrentPage}
+                onPageSizeChange={(size) => {
+                  const newSize = Math.max(1, size || 10);
+                  setPageSize(newSize);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
