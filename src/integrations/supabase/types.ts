@@ -304,7 +304,8 @@ export type Database = {
           id: string
           jobdesk: string | null
           tanggal: string | null
-          worker_id: string
+          worker_id: string | null
+          worker_name: string | null
         }
         Insert: {
           code?: string | null
@@ -315,7 +316,8 @@ export type Database = {
           id?: string
           jobdesk?: string | null
           tanggal?: string | null
-          worker_id: string
+          worker_id?: string | null
+          worker_name?: string | null
         }
         Update: {
           code?: string | null
@@ -326,7 +328,8 @@ export type Database = {
           id?: string
           jobdesk?: string | null
           tanggal?: string | null
-          worker_id?: string
+          worker_id?: string | null
+          worker_name?: string | null
         }
         Relationships: [
           {

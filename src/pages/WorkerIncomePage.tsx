@@ -22,7 +22,8 @@ interface WorkerIncome {
   code: string;
   jobdesk: string;
   fee: number;
-  worker_id: string;
+  worker_id: string | null;
+  worker_name: string | null;
   tanggal: string;
   franchise_id: string;
   created_by: string;
@@ -54,6 +55,8 @@ export default function WorkerIncomePage() {
     jobdesk: '',
     fee: '',
     worker_id: '',
+    worker_name: '',
+    inputMode: 'select' as 'select' | 'manual',
   });
 
   // Filter states
@@ -148,9 +151,16 @@ export default function WorkerIncomePage() {
     }
   };
 
-  const getWorkerName = (workerId: string) => {
-    const worker = workers.find(w => w.id === workerId);
-    return worker?.nama || 'Unknown Worker';
+  const getWorkerName = (item: WorkerIncome) => {
+    // Priority: worker_name (manual input) > worker from workers table
+    if (item.worker_name) {
+      return item.worker_name;
+    }
+    if (item.worker_id) {
+      const worker = workers.find(w => w.id === item.worker_id);
+      return worker?.nama || 'Unknown Worker';
+    }
+    return 'Unknown Worker';
   };
 
   // Filtered and grouped data
@@ -162,7 +172,7 @@ export default function WorkerIncomePage() {
       filtered = filtered.filter(item =>
         item.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.jobdesk.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getWorkerName(item.worker_id).toLowerCase().includes(searchTerm.toLowerCase())
+        getWorkerName(item).toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -176,7 +186,10 @@ export default function WorkerIncomePage() {
 
     // Worker filter
     if (selectedWorker && selectedWorker !== 'all') {
-      filtered = filtered.filter(item => item.worker_id === selectedWorker);
+      filtered = filtered.filter(item => 
+        item.worker_id === selectedWorker || 
+        (item.worker_name && item.worker_name.toLowerCase().includes(selectedWorker.toLowerCase()))
+      );
     }
 
     return filtered;
@@ -226,7 +239,8 @@ export default function WorkerIncomePage() {
         code: formData.code,
         jobdesk: formData.jobdesk,
         fee: parseFloat(formData.fee),
-        worker_id: formData.worker_id,
+        worker_id: formData.inputMode === 'select' ? formData.worker_id : null,
+        worker_name: formData.inputMode === 'manual' ? formData.worker_name : null,
         franchise_id: franchiseId,
         created_by: user.id,
       };
@@ -250,7 +264,7 @@ export default function WorkerIncomePage() {
 
       setDialogOpen(false);
       setEditingItem(null);
-      setFormData({ code: '', jobdesk: '', fee: '', worker_id: '' });
+      setFormData({ code: '', jobdesk: '', fee: '', worker_id: '', worker_name: '', inputMode: 'select' });
       fetchData();
     } catch (error) {
       console.error('Error saving worker income:', error);
@@ -268,7 +282,9 @@ export default function WorkerIncomePage() {
       code: item.code,
       jobdesk: item.jobdesk,
       fee: item.fee.toString(),
-      worker_id: item.worker_id,
+      worker_id: item.worker_id || '',
+      worker_name: item.worker_name || '',
+      inputMode: item.worker_name ? 'manual' : 'select',
     });
     setDialogOpen(true);
   };
@@ -436,10 +452,10 @@ export default function WorkerIncomePage() {
               {canWrite && !isUser && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button onClick={() => {
-                      setEditingItem(null);
-                      setFormData({ code: '', jobdesk: '', fee: '', worker_id: '' });
-                    }} className="bg-blue-600 hover:bg-blue-700">
+                     <Button onClick={() => {
+                       setEditingItem(null);
+                       setFormData({ code: '', jobdesk: '', fee: '', worker_id: '', worker_name: '', inputMode: 'select' });
+                     }} className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="h-4 w-4" />
                       Tambah Data
                     </Button>
@@ -479,24 +495,55 @@ export default function WorkerIncomePage() {
                         required
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="worker">Worker</Label>
-                      <Select 
-                        value={formData.worker_id} 
-                        onValueChange={(value) => setFormData({ ...formData, worker_id: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Pilih worker" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {workers.map((worker) => (
-                            <SelectItem key={worker.id} value={worker.id}>
-                              {worker.nama}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                     <div>
+                       <Label htmlFor="inputMode">Mode Input Worker</Label>
+                       <Select 
+                         value={formData.inputMode} 
+                         onValueChange={(value: 'select' | 'manual') => 
+                           setFormData({ ...formData, inputMode: value, worker_id: '', worker_name: '' })
+                         }
+                       >
+                         <SelectTrigger>
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="select">Pilih dari Data Worker</SelectItem>
+                           <SelectItem value="manual">Input Manual</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     
+                     {formData.inputMode === 'select' ? (
+                       <div>
+                         <Label htmlFor="worker">Worker</Label>
+                         <Select 
+                           value={formData.worker_id} 
+                           onValueChange={(value) => setFormData({ ...formData, worker_id: value })}
+                         >
+                           <SelectTrigger>
+                             <SelectValue placeholder="Pilih worker" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {workers.map((worker) => (
+                               <SelectItem key={worker.id} value={worker.id}>
+                                 {worker.nama}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                     ) : (
+                       <div>
+                         <Label htmlFor="worker_name">Nama Worker</Label>
+                         <Input
+                           id="worker_name"
+                           value={formData.worker_name}
+                           onChange={(e) => setFormData({ ...formData, worker_name: e.target.value })}
+                           placeholder="Masukkan nama worker"
+                           required
+                         />
+                       </div>
+                     )}
                     <Button type="submit" className="w-full">
                       {editingItem ? 'Update' : 'Tambah'} Pendapatan
                     </Button>
@@ -531,7 +578,7 @@ export default function WorkerIncomePage() {
                 <TableRow key={item.id} className="hover:bg-blue-50/50">
                   <TableCell>{item.code}</TableCell>
                   <TableCell>{item.jobdesk}</TableCell>
-                  <TableCell>{getWorkerName(item.worker_id)}</TableCell>
+                  <TableCell>{getWorkerName(item)}</TableCell>
                   <TableCell>Rp {item.fee.toLocaleString('id-ID')}</TableCell>
                   <TableCell>{format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')}</TableCell>
                   {canWrite && (
