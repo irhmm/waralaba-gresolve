@@ -48,6 +48,7 @@ export default function WorkerIncomePage() {
     jobdesk: '',
     fee: '',
     worker_name: '',
+    franchise_code: '',
   });
 
   // Filter states
@@ -197,17 +198,39 @@ export default function WorkerIncomePage() {
     e.preventDefault();
     if (!user) return;
 
-    const franchiseId = isSuperAdmin && selectedFranchise ? selectedFranchise : userRole?.franchise_id;
-    if (!franchiseId) return;
+    if (!formData.franchise_code.trim()) {
+      toast({
+        title: "Error",
+        description: "Kode franchise harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      // Find franchise by code
+      const { data: franchise, error: franchiseError } = await supabase
+        .from('franchises')
+        .select('id')
+        .eq('franchise_id', formData.franchise_code.toUpperCase())
+        .single();
+
+      if (franchiseError || !franchise) {
+        toast({
+          title: "Error",
+          description: "Kode franchise tidak ditemukan",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const payload = {
         code: formData.code,
         jobdesk: formData.jobdesk,
         fee: parseFloat(formData.fee),
         worker_id: null,
         worker_name: formData.worker_name,
-        franchise_id: franchiseId,
+        franchise_id: franchise.id,
         created_by: user.id,
       };
 
@@ -230,7 +253,7 @@ export default function WorkerIncomePage() {
 
       setDialogOpen(false);
       setEditingItem(null);
-      setFormData({ code: '', jobdesk: '', fee: '', worker_name: '' });
+      setFormData({ code: '', jobdesk: '', fee: '', worker_name: '', franchise_code: '' });
       fetchData();
     } catch (error) {
       console.error('Error saving worker income:', error);
@@ -242,13 +265,21 @@ export default function WorkerIncomePage() {
     }
   };
 
-  const handleEdit = (item: WorkerIncome) => {
+  const handleEdit = async (item: WorkerIncome) => {
+    // Get franchise code from franchise_id
+    const { data: franchise } = await supabase
+      .from('franchises')
+      .select('franchise_id')
+      .eq('id', item.franchise_id)
+      .single();
+
     setEditingItem(item);
     setFormData({
       code: item.code,
       jobdesk: item.jobdesk,
       fee: item.fee.toString(),
       worker_name: item.worker_name || '',
+      franchise_code: franchise?.franchise_id || '',
     });
     setDialogOpen(true);
   };
@@ -418,7 +449,7 @@ export default function WorkerIncomePage() {
                   <DialogTrigger asChild>
                      <Button onClick={() => {
                        setEditingItem(null);
-                       setFormData({ code: '', jobdesk: '', fee: '', worker_name: '' });
+                      setFormData({ code: '', jobdesk: '', fee: '', worker_name: '', franchise_code: '' });
                      }} className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="h-4 w-4" />
                       Tambah Data
@@ -431,24 +462,34 @@ export default function WorkerIncomePage() {
                     </DialogTitle>
                   </DialogHeader>
                   <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="code">Kode</Label>
-                      <Input
-                        id="code"
-                        value={formData.code}
-                        onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="jobdesk">Job Desk</Label>
-                      <Input
-                        id="jobdesk"
-                        value={formData.jobdesk}
-                        onChange={(e) => setFormData({ ...formData, jobdesk: e.target.value })}
-                        required
-                      />
-                    </div>
+                     <div>
+                       <Label htmlFor="code">Kode</Label>
+                       <Input
+                         id="code"
+                         value={formData.code}
+                         onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                         required
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="franchise_code">Kode Franchise</Label>
+                       <Input
+                         id="franchise_code"
+                         value={formData.franchise_code}
+                         onChange={(e) => setFormData({ ...formData, franchise_code: e.target.value.toUpperCase() })}
+                         placeholder="Contoh: FR-001"
+                         required
+                       />
+                     </div>
+                     <div>
+                       <Label htmlFor="jobdesk">Job Desk</Label>
+                       <Input
+                         id="jobdesk"
+                         value={formData.jobdesk}
+                         onChange={(e) => setFormData({ ...formData, jobdesk: e.target.value })}
+                         required
+                       />
+                     </div>
                     <div>
                       <Label htmlFor="fee">Fee</Label>
                       <Input

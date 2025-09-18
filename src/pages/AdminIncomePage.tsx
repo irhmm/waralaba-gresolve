@@ -44,6 +44,7 @@ export default function AdminIncomePage() {
   const [formData, setFormData] = useState({
     code: '',
     nominal: '',
+    franchise_code: '',
   });
 
   // Filter states
@@ -124,14 +125,36 @@ export default function AdminIncomePage() {
     e.preventDefault();
     if (!user) return;
 
-    const franchiseId = isSuperAdmin && selectedFranchise ? selectedFranchise : userRole?.franchise_id;
-    if (!franchiseId) return;
+    if (!formData.franchise_code.trim()) {
+      toast({
+        title: "Error",
+        description: "Kode franchise harus diisi",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
+      // Find franchise by code
+      const { data: franchise, error: franchiseError } = await supabase
+        .from('franchises')
+        .select('id')
+        .eq('franchise_id', formData.franchise_code.toUpperCase())
+        .single();
+
+      if (franchiseError || !franchise) {
+        toast({
+          title: "Error",
+          description: "Kode franchise tidak ditemukan",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const payload = {
         code: formData.code,
         nominal: parseFloat(formData.nominal),
-        franchise_id: franchiseId,
+        franchise_id: franchise.id,
         created_by: user.id,
       };
 
@@ -154,7 +177,7 @@ export default function AdminIncomePage() {
 
       setDialogOpen(false);
       setEditingItem(null);
-      setFormData({ code: '', nominal: '' });
+      setFormData({ code: '', nominal: '', franchise_code: '' });
       fetchAdminIncomes();
     } catch (error) {
       console.error('Error saving admin income:', error);
@@ -166,11 +189,19 @@ export default function AdminIncomePage() {
     }
   };
 
-  const handleEdit = (item: AdminIncome) => {
+  const handleEdit = async (item: AdminIncome) => {
+    // Get franchise code from franchise_id
+    const { data: franchise } = await supabase
+      .from('franchises')
+      .select('franchise_id')
+      .eq('id', item.franchise_id)
+      .single();
+
     setEditingItem(item);
     setFormData({
       code: item.code,
       nominal: item.nominal.toString(),
+      franchise_code: franchise?.franchise_id || '',
     });
     setDialogOpen(true);
   };
@@ -260,29 +291,6 @@ export default function AdminIncomePage() {
 
   return (
     <div className="space-y-6">
-      {/* Super Admin Franchise Selector */}
-      {isSuperAdmin && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Pilih Franchise</CardTitle>
-            <CardDescription>Pilih franchise untuk melihat data pendapatan admin</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Select value={selectedFranchise} onValueChange={setSelectedFranchise}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Pilih franchise" />
-              </SelectTrigger>
-              <SelectContent>
-                {franchises.map((franchise) => (
-                  <SelectItem key={franchise.id} value={franchise.id}>
-                    {franchise.name} ({franchise.franchise_id})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Monthly Summary Cards */}
       {Object.keys(groupedData).length > 0 && (
@@ -391,9 +399,9 @@ export default function AdminIncomePage() {
               {canWrite && (
                 <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button onClick={() => {
+                     <Button onClick={() => {
                       setEditingItem(null);
-                      setFormData({ code: '', nominal: '' });
+                      setFormData({ code: '', nominal: '', franchise_code: '' });
                     }} className="bg-blue-600 hover:bg-blue-700">
                       <Plus className="h-4 w-4" />
                       Tambah Data
@@ -405,13 +413,23 @@ export default function AdminIncomePage() {
                       {editingItem ? 'Edit Pendapatan Admin' : 'Tambah Pendapatan Admin'}
                     </DialogTitle>
                   </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="code">Kode</Label>
                       <Input
                         id="code"
                         value={formData.code}
                         onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="franchise_code">Kode Franchise</Label>
+                      <Input
+                        id="franchise_code"
+                        value={formData.franchise_code}
+                        onChange={(e) => setFormData({ ...formData, franchise_code: e.target.value.toUpperCase() })}
+                        placeholder="Contoh: FR-001"
                         required
                       />
                     </div>
