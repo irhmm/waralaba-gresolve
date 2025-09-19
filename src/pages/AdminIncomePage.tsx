@@ -464,14 +464,11 @@ export default function AdminIncomePage() {
             </div>
           </div>
           
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Pendapatan Admin</CardTitle>
-              <CardDescription>
-                Kelola data pendapatan admin franchise
-              </CardDescription>
-            </div>
-            <RealtimeStatus status={connectionStatus} onReconnect={reconnect} />
+          <div>
+            <CardTitle>Pendapatan Admin</CardTitle>
+            <CardDescription>
+              Kelola data pendapatan admin franchise
+            </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
