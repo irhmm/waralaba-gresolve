@@ -461,14 +461,17 @@ export default function WorkerIncomePage() {
                                       onSelect={() => {
                                         setSelectedWorker(workerName === selectedWorker ? 'all' : workerName);
                                       }}
+                                      className="flex items-center px-3 py-2"
                                     >
                                       <Check
                                         className={cn(
-                                          "mr-2 h-4 w-4",
+                                          "mr-3 h-4 w-4 shrink-0",
                                           selectedWorker === workerName ? "opacity-100" : "opacity-0"
                                         )}
                                       />
-                                      {workerName}
+                                      <span className="truncate text-sm font-medium">
+                                        {workerName}
+                                      </span>
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
