@@ -176,14 +176,64 @@ export default function WorkerIncomePage() {
     return calculateMonthlyTotals(grouped, 'fee');
   }, [filteredData]);
 
-  // Pagination logic  
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / Math.max(1, pageSize)));
-  const paginatedData = useMemo(() => {
+  // Group data by date for daily display
+  const groupedByDate = useMemo(() => {
+    const grouped = filteredData.reduce((acc, item) => {
+      const date = format(new Date(item.tanggal), 'yyyy-MM-dd');
+      const dateLabel = format(new Date(item.tanggal), 'dd MMMM yyyy');
+      
+      if (!acc[date]) {
+        acc[date] = {
+          label: dateLabel,
+          items: [],
+          total: 0
+        };
+      }
+      
+      acc[date].items.push(item);
+      acc[date].total += item.fee;
+      
+      return acc;
+    }, {} as Record<string, { label: string; items: WorkerIncome[]; total: number }>);
+
+    // Sort by date descending
+    const sortedEntries = Object.entries(grouped).sort(([a], [b]) => b.localeCompare(a));
+    return Object.fromEntries(sortedEntries);
+  }, [filteredData]);
+
+  // Pagination logic - now works with flattened grouped data
+  const flattenedData = Object.values(groupedByDate).flatMap(group => group.items);
+  const totalPages = Math.max(1, Math.ceil(flattenedData.length / Math.max(1, pageSize)));
+  
+  const paginatedGroupedData = useMemo(() => {
     const safePageSize = Math.max(1, pageSize);
     const startIndex = (currentPage - 1) * safePageSize;
     const endIndex = startIndex + safePageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, pageSize]);
+    
+    let currentIndex = 0;
+    const result: Record<string, { label: string; items: WorkerIncome[]; total: number }> = {};
+    
+    for (const [date, group] of Object.entries(groupedByDate)) {
+      const groupEndIndex = currentIndex + group.items.length;
+      
+      if (groupEndIndex > startIndex && currentIndex < endIndex) {
+        const itemsStartIndex = Math.max(0, startIndex - currentIndex);
+        const itemsEndIndex = Math.min(group.items.length, endIndex - currentIndex);
+        
+        if (itemsStartIndex < itemsEndIndex) {
+          result[date] = {
+            ...group,
+            items: group.items.slice(itemsStartIndex, itemsEndIndex)
+          };
+        }
+      }
+      
+      currentIndex = groupEndIndex;
+      if (currentIndex >= endIndex) break;
+    }
+    
+    return result;
+  }, [groupedByDate, currentPage, pageSize]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -606,67 +656,97 @@ export default function WorkerIncomePage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Kode</TableHead>
-                  <TableHead>Job Desk</TableHead>
-                  <TableHead>Nama Worker</TableHead>
-                  <TableHead>Fee</TableHead>
-                  <TableHead>Tanggal</TableHead>
-                  {canWrite && <TableHead className="w-[100px]">Aksi</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {paginatedData.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={canWrite ? 6 : 5} className="h-24 text-center">
-                      Tidak ada data.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  paginatedData.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.code}</TableCell>
-                      <TableCell>{item.jobdesk}</TableCell>
-                      <TableCell>{item.worker_name || 'N/A'}</TableCell>
-                      <TableCell>Rp {item.fee.toLocaleString('id-ID')}</TableCell>
-                      <TableCell>{format(new Date(item.tanggal), 'dd/MM/yyyy')}</TableCell>
-                      {canWrite && (
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(item)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+          <div className="space-y-6">
+            {Object.keys(paginatedGroupedData).length === 0 ? (
+              <div className="rounded-md border bg-white shadow-sm">
+                <div className="h-24 flex items-center justify-center text-center text-muted-foreground">
+                  Tidak ada data.
+                </div>
+              </div>
+            ) : (
+              Object.entries(paginatedGroupedData).map(([date, group]) => (
+                <div key={date} className="rounded-lg border bg-white shadow-sm overflow-hidden">
+                  {/* Daily Header */}
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{group.label}</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {group.items.length} transaksi
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 mb-1">TOTAL HARI INI</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          Rp {group.total.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Daily Table */}
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="border-b">
+                        <TableHead className="font-semibold">Kode</TableHead>
+                        <TableHead className="font-semibold">Job Desk</TableHead>
+                        <TableHead className="font-semibold">Nama Worker</TableHead>
+                        <TableHead className="font-semibold">Fee</TableHead>
+                        <TableHead className="font-semibold">Waktu</TableHead>
+                        {canWrite && <TableHead className="w-[100px] font-semibold">Aksi</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {group.items.map((item) => (
+                        <TableRow 
+                          key={item.id} 
+                          className="hover:bg-gray-50 transition-colors duration-150"
+                        >
+                          <TableCell className="font-medium">{item.code}</TableCell>
+                          <TableCell>{item.jobdesk}</TableCell>
+                          <TableCell>{item.worker_name || 'N/A'}</TableCell>
+                          <TableCell className="font-semibold">Rp {item.fee.toLocaleString('id-ID')}</TableCell>
+                          <TableCell className="text-sm text-gray-600">
+                            {format(new Date(item.tanggal), 'HH:mm')}
+                          </TableCell>
+                          {canWrite && (
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEdit(item)}
+                                  className="h-8 w-8"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDelete(item.id)}
+                                  className="h-8 w-8"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ))
+            )}
           </div>
           
           {totalPages > 0 && pageSize > 0 && (
-            <div className="mt-4">
+            <div className="mt-6">
               <DataTablePagination
                 currentPage={currentPage}
                 totalPages={totalPages}
                 pageSize={pageSize}
-                totalItems={filteredData.length}
+                totalItems={flattenedData.length}
                 onPageChange={setCurrentPage}
                 onPageSizeChange={(size) => {
                   const newSize = Math.max(1, size || 10);
