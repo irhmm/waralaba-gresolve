@@ -436,7 +436,7 @@ export default function WorkerIncomePage() {
                           <PopoverContent className="w-full p-0 z-50 bg-white">
                             <Command>
                               <CommandInput placeholder="Cari nama worker..." className="h-9" />
-                              <CommandList>
+                              <CommandList className="max-h-48 overflow-y-auto">
                                 <CommandEmpty>Tidak ada worker ditemukan.</CommandEmpty>
                                 <CommandGroup>
                                   <CommandItem
@@ -445,14 +445,17 @@ export default function WorkerIncomePage() {
                                     onSelect={() => {
                                       setSelectedWorker('all');
                                     }}
+                                    className="flex items-center px-3 py-2"
                                   >
                                     <Check
                                       className={cn(
-                                        "mr-2 h-4 w-4",
+                                        "mr-3 h-4 w-4 shrink-0",
                                         selectedWorker === 'all' ? "opacity-100" : "opacity-0"
                                       )}
                                     />
-                                    Semua Worker
+                                    <span className="truncate text-sm font-medium">
+                                      Semua Worker
+                                    </span>
                                   </CommandItem>
                                   {uniqueWorkerNames.map((workerName) => (
                                     <CommandItem
