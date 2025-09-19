@@ -103,10 +103,27 @@
 
   body {
     @apply bg-background text-foreground font-inter antialiased;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold text-foreground;
+  }
+
+  /* Mobile-friendly text sizing */
+  @media (max-width: 768px) {
+    h1 {
+      @apply text-lg;
+    }
+    
+    h2 {
+      @apply text-base;
+    }
+    
+    h3 {
+      @apply text-sm;
+    }
   }
 }
 
@@ -162,5 +179,68 @@
 
   .status-inactive {
     @apply bg-destructive/10 text-destructive;
+  }
+
+  /* Improved responsive grid utilities */
+  .responsive-grid {
+    @apply grid grid-cols-1 gap-4;
+  }
+  
+  .responsive-grid.sm-2 {
+    @apply sm:grid-cols-2;
+  }
+  
+  .responsive-grid.md-3 {
+    @apply md:grid-cols-3;
+  }
+  
+  .responsive-grid.lg-4 {
+    @apply lg:grid-cols-4;
+  }
+
+  /* Mobile-friendly card styling */
+  .mobile-card {
+    @apply p-3 sm:p-4 rounded-lg border border-border bg-card;
+  }
+
+  /* Mobile-friendly button improvements */
+  .mobile-btn {
+    @apply min-h-[44px] px-4 touch-manipulation;
+  }
+
+  /* Mobile table improvements */
+  .mobile-table-wrapper {
+    @apply -mx-3 sm:-mx-4 md:-mx-6;
+  }
+
+  .mobile-table {
+    @apply min-w-[600px];
+  }
+
+  /* Touch-friendly spacing */
+  .touch-spacing {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  /* Mobile form improvements */
+  .mobile-form {
+    @apply space-y-4;
+  }
+
+  .mobile-form .form-field {
+    @apply space-y-2;
+  }
+
+  /* Improved responsive text */
+  .responsive-text {
+    @apply text-sm sm:text-base;
+  }
+
+  .responsive-title {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+
+  .responsive-subtitle {
+    @apply text-base sm:text-lg;
   }
 }

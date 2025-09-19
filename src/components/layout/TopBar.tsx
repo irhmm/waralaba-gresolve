@@ -38,23 +38,28 @@ export const TopBar = () => {
   };
 
   return (
-    <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6">
-      <div className="flex items-center gap-4">
-        <SidebarTrigger className="lg:hidden" />
+    <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-6">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+        <SidebarTrigger className="hidden md:flex" />
         
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Building2 className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-semibold text-foreground">Franchise Manager</h1>
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 ml-12 md:ml-0">
+          <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-lg md:text-xl font-semibold text-foreground truncate">
+              Gresolve Waralaba
+            </h1>
+            <p className="text-xs text-muted-foreground hidden sm:block">
+              Franchise Management System
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
         {userRole && (
           <Badge 
             variant="secondary" 
-            className={`${roleColors[userRole.role]} transition-colors duration-150`}
+            className={`${roleColors[userRole.role]} transition-colors duration-150 text-xs hidden sm:inline-flex`}
           >
             {roleDisplayNames[userRole.role]}
           </Badge>
@@ -62,9 +67,9 @@ export const TopBar = () => {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-10 w-10 rounded-full p-0">
-              <Avatar className="h-10 w-10">
-                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+            <Button variant="ghost" className="relative h-8 w-8 sm:h-10 sm:w-10 rounded-full p-0">
+              <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                <AvatarFallback className="bg-primary/10 text-primary font-medium text-xs sm:text-sm">
                   {user?.email ? getInitials(user.email) : 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -74,7 +79,7 @@ export const TopBar = () => {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
+                <p className="text-sm font-medium leading-none truncate">
                   {user?.email}
                 </p>
                 <p className="text-xs leading-none text-muted-foreground">

@@ -320,12 +320,12 @@ export default function WorkerIncomePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="touch-spacing">
       {/* Super Admin Franchise Selector */}
       {isSuperAdmin && !isUser && (
         <Card>
           <CardHeader>
-            <CardTitle>Pilih Franchise</CardTitle>
+            <CardTitle className="responsive-title">Pilih Franchise</CardTitle>
             <CardDescription>Pilih franchise untuk melihat data pendapatan worker</CardDescription>
           </CardHeader>
           <CardContent>
@@ -352,17 +352,17 @@ export default function WorkerIncomePage() {
         (selectedMonth && selectedMonth !== 'all') || 
         (selectedWorker && selectedWorker !== 'all')
       ) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="responsive-grid sm-2 lg-3">
           {Object.entries(groupedData)
             .sort(([a], [b]) => b.localeCompare(a))
             .slice(0, 6)
             .map(([month, data]) => (
             <Card key={month} className="bg-gradient-to-r from-blue-50 to-white border-blue-200">
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-blue-600">{data.label}</p>
-                    <p className="text-2xl font-bold text-blue-900">
+                    <p className="text-xl sm:text-2xl font-bold text-blue-900">
                       Rp {data.total.toLocaleString('id-ID')}
                     </p>
                     <p className="text-xs text-blue-500">{data.items.length} transaksi</p>
@@ -378,7 +378,7 @@ export default function WorkerIncomePage() {
       <Card>
         <CardHeader>
           {/* Search Bar */}
-          <div className="flex items-center gap-4 mb-4">
+          <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -388,11 +388,12 @@ export default function WorkerIncomePage() {
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-blue-600">
+                  <Button variant="outline" size="sm" className="text-blue-600 mobile-btn">
                     <Filter className="h-4 w-4 text-blue-500" />
+                    <span className="hidden sm:inline ml-2">Filter</span>
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-80 p-4 bg-white rounded-lg shadow-lg border z-50">
@@ -450,9 +451,9 @@ export default function WorkerIncomePage() {
                 </PopoverContent>
               </Popover>
               
-              <Button variant="outline" onClick={handleExport} className="text-blue-600">
+              <Button variant="outline" onClick={handleExport} className="text-blue-600 mobile-btn">
                 <Download className="h-4 w-4" />
-                Export
+                <span className="hidden sm:inline ml-2">Export</span>
               </Button>
               
               {canWrite && !isUser && (
@@ -461,9 +462,9 @@ export default function WorkerIncomePage() {
                      <Button onClick={() => {
                        setEditingItem(null);
                       setFormData({ code: '', jobdesk: '', fee: '', worker_name: '', franchise_code: '' });
-                     }} className="bg-blue-600 hover:bg-blue-700">
+                     }} className="bg-blue-600 hover:bg-blue-700 mobile-btn">
                       <Plus className="h-4 w-4" />
-                      Tambah Data
+                      <span className="hidden sm:inline ml-2">Tambah Data</span>
                     </Button>
                   </DialogTrigger>
                 <DialogContent>
