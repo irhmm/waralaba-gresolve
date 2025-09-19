@@ -15,16 +15,26 @@ export function useRealtimeData(config: RealtimeConfig) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected'>('disconnected');
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
 
+  const { table, franchiseId, onInsert, onUpdate, onDelete } = config;
+
   const setupRealtimeSubscription = useCallback(() => {
+    // Clear any existing subscription and retry timeout
     if (channelRef.current) {
       channelRef.current.unsubscribe();
+      channelRef.current = null;
+    }
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
     }
 
     setConnectionStatus('connecting');
 
-    const channel = supabase.channel(`${config.table}-changes`, {
+    const channelName = `${table}-changes-${Date.now()}`;
+    const channel = supabase.channel(channelName, {
       config: {
         broadcast: { self: false }
       }
@@ -36,15 +46,15 @@ export function useRealtimeData(config: RealtimeConfig) {
       {
         event: 'INSERT',
         schema: 'public',
-        table: config.table,
-        filter: config.franchiseId ? `franchise_id=eq.${config.franchiseId}` : undefined
+        table: table,
+        filter: franchiseId ? `franchise_id=eq.${franchiseId}` : undefined
       },
       (payload) => {
-        console.log(`New ${config.table} insert:`, payload);
-        config.onInsert?.(payload);
+        console.log(`New ${table} insert:`, payload);
+        onInsert?.(payload);
         toast({
           title: "Data Baru",
-          description: `Data baru ditambahkan ke ${config.table}`,
+          description: `Data baru ditambahkan ke ${table}`,
         });
       }
     );
@@ -55,15 +65,15 @@ export function useRealtimeData(config: RealtimeConfig) {
       {
         event: 'UPDATE',
         schema: 'public',
-        table: config.table,
-        filter: config.franchiseId ? `franchise_id=eq.${config.franchiseId}` : undefined
+        table: table,
+        filter: franchiseId ? `franchise_id=eq.${franchiseId}` : undefined
       },
       (payload) => {
-        console.log(`${config.table} update:`, payload);
-        config.onUpdate?.(payload);
+        console.log(`${table} update:`, payload);
+        onUpdate?.(payload);
         toast({
           title: "Data Diperbarui",
-          description: `Data di ${config.table} telah diperbarui`,
+          description: `Data di ${table} telah diperbarui`,
         });
       }
     );
@@ -74,21 +84,21 @@ export function useRealtimeData(config: RealtimeConfig) {
       {
         event: 'DELETE',
         schema: 'public',
-        table: config.table,
-        filter: config.franchiseId ? `franchise_id=eq.${config.franchiseId}` : undefined
+        table: table,
+        filter: franchiseId ? `franchise_id=eq.${franchiseId}` : undefined
       },
       (payload) => {
-        console.log(`${config.table} delete:`, payload);
-        config.onDelete?.(payload);
+        console.log(`${table} delete:`, payload);
+        onDelete?.(payload);
         toast({
           title: "Data Dihapus",
-          description: `Data di ${config.table} telah dihapus`,
+          description: `Data di ${table} telah dihapus`,
         });
       }
     );
 
     channel.subscribe((status) => {
-      console.log(`Realtime subscription status for ${config.table}:`, status);
+      console.log(`Realtime subscription status for ${table}:`, status);
       
       if (status === 'SUBSCRIBED') {
         setIsConnected(true);
@@ -96,33 +106,49 @@ export function useRealtimeData(config: RealtimeConfig) {
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         setIsConnected(false);
         setConnectionStatus('disconnected');
-        // Retry connection after 3 seconds
-        setTimeout(() => {
-          if (channelRef.current) {
+        // Retry connection after 5 seconds to avoid rapid reconnections
+        retryTimeoutRef.current = setTimeout(() => {
+          if (channelRef.current === channel) {
             setupRealtimeSubscription();
           }
-        }, 3000);
+        }, 5000);
+      } else if (status === 'CLOSED') {
+        setIsConnected(false);
+        setConnectionStatus('disconnected');
       }
     });
 
     channelRef.current = channel;
-  }, [config, toast]);
+  }, [table, franchiseId, onInsert, onUpdate, onDelete, toast]);
 
   useEffect(() => {
-    setupRealtimeSubscription();
+    let mounted = true;
+    
+    if (mounted) {
+      setupRealtimeSubscription();
+    }
 
     return () => {
+      mounted = false;
       if (channelRef.current) {
         channelRef.current.unsubscribe();
         channelRef.current = null;
       }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
     };
-  }, [setupRealtimeSubscription]);
+  }, [table, franchiseId]); // Only depend on stable values
 
   const disconnect = useCallback(() => {
     if (channelRef.current) {
       channelRef.current.unsubscribe();
       channelRef.current = null;
+    }
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
     }
     setIsConnected(false);
     setConnectionStatus('disconnected');

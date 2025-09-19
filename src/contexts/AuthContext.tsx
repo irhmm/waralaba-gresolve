@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -39,8 +39,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roleLoading, setRoleLoading] = useState(false);
   const { toast } = useToast();
 
-  const fetchUserRole = async () => {
-    if (!user) {
+  const fetchUserRole = useCallback(async () => {
+    if (!user?.id) {
       setUserRole(null);
       return;
     }
@@ -77,15 +77,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setRoleLoading(false);
     }
-  };
+  }, [user?.id]);
 
-  const attemptDirectRoleAssignment = async () => {
+  const attemptDirectRoleAssignment = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       // First check if role already exists
       const { data: existingRole } = await supabase
         .from('user_roles')
         .select('role, franchise_id')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .single();
 
       if (existingRole) {
@@ -97,7 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data: newRole, error: insertError } = await supabase
         .from('user_roles')
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           role: 'user' as const,
           franchise_id: null
         })
@@ -122,24 +124,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ultimate fallback - just set user role in state
       setUserRole({ role: 'user', franchise_id: null });
     }
-  };
+  }, [user?.id]);
 
-  const refreshRole = async () => {
+  const refreshRole = useCallback(async () => {
     console.log('Refreshing user role...');
     await fetchUserRole();
-  };
+  }, [fetchUserRole]);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Immediate role fetching without delay
-        if (session?.user) {
-          fetchUserRole();
-        } else {
+        // Clear role if no user
+        if (!session?.user) {
           setUserRole(null);
         }
         
@@ -149,18 +153,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchUserRole();
-      }
-      
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
+  // Separate effect for role fetching to avoid dependencies issues
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserRole();
+    }
+  }, [user?.id, fetchUserRole]);
 
   const signIn = async (email: string, password: string) => {
     try {

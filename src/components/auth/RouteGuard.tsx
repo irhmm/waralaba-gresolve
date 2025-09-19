@@ -8,16 +8,20 @@ interface RouteGuardProps {
 }
 
 const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
-  const { userRole } = useAuth();
+  const { userRole, roleLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!userRole) return;
+    // Wait for role loading to complete
+    if (roleLoading) return;
+
+    // Default to 'user' role if no role is set
+    const effectiveRole = userRole?.role || 'user';
 
     // If user role is 'user', they can only access worker-income page
-    if (userRole.role === 'user' && location.pathname !== '/worker-income') {
+    if (effectiveRole === 'user' && location.pathname !== '/worker-income') {
       toast({
         title: "Akses Terbatas",
         description: "Anda hanya dapat melihat data Pendapatan Worker.",
@@ -26,13 +30,7 @@ const RouteGuard: React.FC<RouteGuardProps> = ({ children }) => {
       navigate('/worker-income', { replace: true });
       return;
     }
-
-    // If user role is 'user' and on root path, redirect to worker-income
-    if (userRole.role === 'user' && location.pathname === '/') {
-      navigate('/worker-income', { replace: true });
-      return;
-    }
-  }, [userRole, location.pathname, navigate, toast]);
+  }, [userRole?.role, roleLoading, location.pathname, navigate, toast]);
 
   return <>{children}</>;
 };
