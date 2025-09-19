@@ -27,7 +27,7 @@ export type Database = {
         Insert: {
           code?: string | null
           created_at?: string | null
-          created_by: string
+          created_by?: string
           franchise_id: string
           id?: string
           nominal: number

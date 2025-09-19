@@ -12,6 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -53,6 +55,15 @@ export default function ExpensesPage() {
   // Only super_admin, franchise, and admin_keuangan can access expenses
   const canAccess = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role);
   const canWrite = canAccess;
+
+  // Realtime subscription
+  const { connectionStatus, reconnect } = useRealtimeData({
+    table: 'expenses',
+    franchiseId: userRole?.franchise_id,
+    onInsert: () => fetchExpenses(),
+    onUpdate: () => fetchExpenses(),
+    onDelete: () => fetchExpenses()
+  });
 
   useEffect(() => {
     if (canAccess) {
@@ -397,11 +408,14 @@ export default function ExpensesPage() {
             </div>
           </div>
           
-          <div>
-            <CardTitle>Pengeluaran</CardTitle>
-            <CardDescription>
-              Kelola data pengeluaran franchise
-            </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Pengeluaran</CardTitle>
+              <CardDescription>
+                Kelola data pengeluaran franchise
+              </CardDescription>
+            </div>
+            <RealtimeStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
         </CardHeader>
         <CardContent>

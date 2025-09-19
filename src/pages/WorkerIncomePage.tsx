@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { Plus, Edit, Trash2, Search, Download, Filter } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -63,6 +65,15 @@ export default function WorkerIncomePage() {
   const isSuperAdmin = userRole?.role === 'super_admin';
   const isUser = userRole?.role === 'user';
   const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan'].includes(userRole.role) && !isUser;
+
+  // Realtime subscription
+  const { connectionStatus, reconnect } = useRealtimeData({
+    table: 'worker_income',
+    franchiseId: isSuperAdmin && selectedFranchise ? selectedFranchise : userRole?.franchise_id,
+    onInsert: () => fetchData(),
+    onUpdate: () => fetchData(),
+    onDelete: () => fetchData()
+  });
 
   useEffect(() => {
     fetchData();
@@ -530,11 +541,16 @@ export default function WorkerIncomePage() {
       {/* Data Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Data Pendapatan Worker</CardTitle>
-          <CardDescription>
-            Total: {filteredData.length} data | 
-            Total Fee: Rp {filteredData.reduce((sum, item) => sum + item.fee, 0).toLocaleString('id-ID')}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Data Pendapatan Worker</CardTitle>
+              <CardDescription>
+                Total: {filteredData.length} data | 
+                Total Fee: Rp {filteredData.reduce((sum, item) => sum + item.fee, 0).toLocaleString('id-ID')}
+              </CardDescription>
+            </div>
+            <RealtimeStatus status={connectionStatus} onReconnect={reconnect} />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="rounded-md border">

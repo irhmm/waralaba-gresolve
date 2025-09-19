@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeData } from '@/hooks/useRealtimeData';
+import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
@@ -58,6 +60,15 @@ export default function AdminIncomePage() {
 
   const canWrite = userRole?.role && ['super_admin', 'franchise', 'admin_keuangan', 'admin_marketing'].includes(userRole.role);
   const isSuperAdmin = userRole?.role === 'super_admin';
+
+  // Realtime subscription
+  const { connectionStatus, reconnect } = useRealtimeData({
+    table: 'admin_income',
+    franchiseId: isSuperAdmin && selectedFranchise ? selectedFranchise : userRole?.franchise_id,
+    onInsert: () => fetchAdminIncomes(),
+    onUpdate: () => fetchAdminIncomes(),
+    onDelete: () => fetchAdminIncomes()
+  });
 
   useEffect(() => {
     fetchAdminIncomes();
@@ -453,11 +464,14 @@ export default function AdminIncomePage() {
             </div>
           </div>
           
-          <div>
-            <CardTitle>Pendapatan Admin</CardTitle>
-            <CardDescription>
-              Kelola data pendapatan admin franchise
-            </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Pendapatan Admin</CardTitle>
+              <CardDescription>
+                Kelola data pendapatan admin franchise
+              </CardDescription>
+            </div>
+            <RealtimeStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
         </CardHeader>
         <CardContent>
