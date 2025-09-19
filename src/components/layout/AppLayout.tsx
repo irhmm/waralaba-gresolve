@@ -39,59 +39,21 @@ const AppLayout = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mb-4"></div>
-          <p className="text-muted-foreground">Memuat data role...</p>
+          <p className="text-muted-foreground">Memuat aplikasi...</p>
         </div>
       </div>
     );
   }
 
-  // If user is authenticated but has no role, show role assignment instruction
-  if (!userRole) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center max-w-md mx-auto p-6">
-          <h2 className="text-2xl font-semibold mb-4">Akun Belum Disetup</h2>
-          <p className="text-muted-foreground mb-4">
-            Akun Anda belum memiliki role yang ditetapkan.
-          </p>
-          <p className="text-muted-foreground mb-6">
-            Silakan hubungi administrator untuk mengatur role Anda, atau coba refresh untuk memuat ulang role.
-          </p>
-          
-          <div className="flex gap-3 justify-center mb-6">
-            <Button 
-              variant="outline" 
-              onClick={handleRefreshRole}
-              disabled={isRefreshing || roleLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${(isRefreshing || roleLoading) ? 'animate-spin' : ''}`} />
-              {(isRefreshing || roleLoading) ? 'Memuat...' : 'Coba Ambil Ulang Role'}
-            </Button>
-            <Button 
-              variant="ghost" 
-              onClick={signOut}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-
-          <div className="text-sm text-muted-foreground bg-muted p-4 rounded-lg">
-            <p className="font-medium mb-2">Untuk Administrator:</p>
-            <p>Gunakan fitur "Assign Role" di halaman admin untuk menetapkan role kepada user ini.</p>
-            <p className="mt-2">Email: <code className="bg-background px-2 py-1 rounded">{user.email}</code></p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // If user doesn't have role yet, default to 'user' role and continue
+  const effectiveUserRole = userRole || { role: 'user' as const, franchise_id: null };
 
   // Role-based redirection from root path
-  if (location.pathname === '/' && userRole) {
-    if (userRole.role === 'admin_marketing') {
+  if (location.pathname === '/') {
+    if (effectiveUserRole.role === 'admin_marketing') {
       return <Navigate to="/admin-income" replace />;
     }
-    if (userRole.role === 'user') {
+    if (effectiveUserRole.role === 'user') {
       return <Navigate to="/worker-income" replace />;
     }
   }

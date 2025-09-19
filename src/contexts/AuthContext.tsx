@@ -49,13 +49,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log('Ensuring user role for:', user.email);
       
-      // Use ensure_default_user_role to automatically assign default role if none exists
+      // Primary: Use ensure_default_user_role RPC
       const { data, error } = await supabase
         .rpc('ensure_default_user_role', { target_user_id: user.id });
 
       if (error) {
-        console.error('Error ensuring user role:', error);
-        setUserRole(null);
+        console.error('Error with RPC, attempting fallback:', error);
+        // Fallback: Direct insert to user_roles table
+        await attemptDirectRoleAssignment();
         return;
       }
 
@@ -67,14 +68,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           franchise_id: (data as any).franchise_id
         });
       } else {
-        console.log('No role could be assigned to user');
-        setUserRole(null);
+        console.log('RPC failed, attempting direct assignment');
+        await attemptDirectRoleAssignment();
       }
     } catch (error) {
-      console.error('Error ensuring user role:', error);
-      setUserRole(null);
+      console.error('Error ensuring user role, using fallback:', error);
+      await attemptDirectRoleAssignment();
     } finally {
       setRoleLoading(false);
+    }
+  };
+
+  const attemptDirectRoleAssignment = async () => {
+    try {
+      // First check if role already exists
+      const { data: existingRole } = await supabase
+        .from('user_roles')
+        .select('role, franchise_id')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (existingRole) {
+        setUserRole(existingRole);
+        return;
+      }
+
+      // If no role exists, create default 'user' role
+      const { data: newRole, error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: user?.id,
+          role: 'user' as const,
+          franchise_id: null
+        })
+        .select('role, franchise_id')
+        .single();
+
+      if (insertError) {
+        console.error('Failed to create default role:', insertError);
+        // Set default role in state as final fallback
+        setUserRole({ role: 'user', franchise_id: null });
+        return;
+      }
+
+      if (newRole) {
+        setUserRole(newRole);
+      } else {
+        // Final fallback - set user role in state
+        setUserRole({ role: 'user', franchise_id: null });
+      }
+    } catch (fallbackError) {
+      console.error('Fallback role assignment failed:', fallbackError);
+      // Ultimate fallback - just set user role in state
+      setUserRole({ role: 'user', franchise_id: null });
     }
   };
 
@@ -90,11 +136,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         
-        // Defer role fetching to avoid potential deadlock
+        // Immediate role fetching without delay
         if (session?.user) {
-          setTimeout(() => {
-            fetchUserRole();
-          }, 100); // Slightly longer delay to ensure user state is set
+          fetchUserRole();
         } else {
           setUserRole(null);
         }
@@ -109,9 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        setTimeout(() => {
-          fetchUserRole();
-        }, 100); // Slightly longer delay to ensure user state is set
+        fetchUserRole();
       }
       
       setLoading(false);
