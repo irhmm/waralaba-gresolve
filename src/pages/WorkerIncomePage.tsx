@@ -10,14 +10,16 @@ import { MonthSelector } from '@/components/ui/month-selector';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { RealtimeStatus } from '@/components/ui/realtime-status';
-import { Plus, Edit, Trash2, Search, Download, Filter } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Download, Filter, ChevronDown, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
 import { exportWorkerIncomeToExcel } from '@/utils/excelUtils';
+import { cn } from '@/lib/utils';
 
 interface WorkerIncome {
   id: string;
@@ -417,19 +419,63 @@ export default function WorkerIncomePage() {
                       
                       <div>
                         <Label htmlFor="worker-filter">Worker</Label>
-                        <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Semua Worker" />
-                          </SelectTrigger>
-                          <SelectContent className="z-50 bg-white">
-                            <SelectItem value="all">Semua Worker</SelectItem>
-                            {uniqueWorkerNames.map((workerName) => (
-                              <SelectItem key={workerName} value={workerName}>
-                                {workerName}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between"
+                            >
+                              {selectedWorker === 'all' 
+                                ? 'Semua Worker' 
+                                : uniqueWorkerNames.find((worker) => worker === selectedWorker) || 'Semua Worker'
+                              }
+                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0 z-50 bg-white">
+                            <Command>
+                              <CommandInput placeholder="Cari nama worker..." className="h-9" />
+                              <CommandList>
+                                <CommandEmpty>Tidak ada worker ditemukan.</CommandEmpty>
+                                <CommandGroup>
+                                  <CommandItem
+                                    key="all"
+                                    value="all"
+                                    onSelect={() => {
+                                      setSelectedWorker('all');
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        selectedWorker === 'all' ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    Semua Worker
+                                  </CommandItem>
+                                  {uniqueWorkerNames.map((workerName) => (
+                                    <CommandItem
+                                      key={workerName}
+                                      value={workerName}
+                                      onSelect={() => {
+                                        setSelectedWorker(workerName === selectedWorker ? 'all' : workerName);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          selectedWorker === workerName ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {workerName}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                     
