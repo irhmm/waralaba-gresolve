@@ -93,9 +93,11 @@ const Dashboard = () => {
 
     setLoading(true);
     try {
-      const currentMonth = new Date();
-      const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-      const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+      // Use proper date filtering like FinancialReportPage
+      const currentMonthYear = format(new Date(), 'yyyy-MM');
+      const startDate = `${currentMonthYear}-01`;
+      const nextMonthDate = new Date(new Date(startDate).setMonth(new Date(startDate).getMonth() + 1));
+      const endDate = nextMonthDate.toISOString().split('T')[0];
 
       const newStats: DashboardStats = {};
 
@@ -138,47 +140,62 @@ const Dashboard = () => {
         // Fetch current month expenses from all franchises
         const { data: thisMonthExpenses } = await supabase
           .from('expenses')
-          .select('nominal, tanggal')
-          .gte('tanggal', startOfMonth.toISOString())
-          .lt('tanggal', endOfMonth.toISOString());
+          .select('nominal')
+          .gte('tanggal', startDate)
+          .lt('tanggal', endDate);
         newStats.thisMonthTotalExpenses = thisMonthExpenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
       } else {
         // Franchise-scoped stats
         const franchiseId = userRole.franchise_id;
 
         if (franchiseId) {
-          const { data: workerIncome } = await supabase
+          // Worker Income - Total
+          const { data: allWorkerIncome } = await supabase
             .from('worker_income')
-            .select('fee, tanggal')
+            .select('fee')
             .eq('franchise_id', franchiseId);
-          
-          newStats.totalWorkerIncome = workerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
-          newStats.thisMonthWorkerIncome = workerIncome?.filter(item => {
-            const date = new Date(item.tanggal);
-            return date >= startOfMonth && date <= endOfMonth;
-          }).reduce((sum, item) => sum + Number(item.fee), 0) || 0;
+          newStats.totalWorkerIncome = allWorkerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
 
-          const { data: adminIncome } = await supabase
+          // Worker Income - This Month (with database filter)
+          const { data: thisMonthWorkerIncome } = await supabase
+            .from('worker_income')
+            .select('fee')
+            .eq('franchise_id', franchiseId)
+            .gte('tanggal', startDate)
+            .lt('tanggal', endDate);
+          newStats.thisMonthWorkerIncome = thisMonthWorkerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
+
+          // Admin Income - Total
+          const { data: allAdminIncome } = await supabase
             .from('admin_income')
-            .select('nominal, tanggal')
+            .select('nominal')
             .eq('franchise_id', franchiseId);
-          
-          newStats.totalAdminIncome = adminIncome?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
-          newStats.thisMonthAdminIncome = adminIncome?.filter(item => {
-            const date = new Date(item.tanggal);
-            return date >= startOfMonth && date <= endOfMonth;
-          }).reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+          newStats.totalAdminIncome = allAdminIncome?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
 
-          const { data: expenses } = await supabase
+          // Admin Income - This Month (with database filter)
+          const { data: thisMonthAdminIncome } = await supabase
+            .from('admin_income')
+            .select('nominal')
+            .eq('franchise_id', franchiseId)
+            .gte('tanggal', startDate)
+            .lt('tanggal', endDate);
+          newStats.thisMonthAdminIncome = thisMonthAdminIncome?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+
+          // Expenses - Total
+          const { data: allExpenses } = await supabase
             .from('expenses')
-            .select('nominal, tanggal')
+            .select('nominal')
             .eq('franchise_id', franchiseId);
-          
-          newStats.totalExpenses = expenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
-          newStats.thisMonthExpenses = expenses?.filter(item => {
-            const date = new Date(item.tanggal);
-            return date >= startOfMonth && date <= endOfMonth;
-          }).reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+          newStats.totalExpenses = allExpenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+
+          // Expenses - This Month (with database filter)
+          const { data: thisMonthExpenses } = await supabase
+            .from('expenses')
+            .select('nominal')
+            .eq('franchise_id', franchiseId)
+            .gte('tanggal', startDate)
+            .lt('tanggal', endDate);
+          newStats.thisMonthExpenses = thisMonthExpenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
 
           const { data: workers } = await supabase
             .from('workers')
@@ -187,7 +204,6 @@ const Dashboard = () => {
           newStats.totalWorkers = workers?.length || 0;
 
           // Fetch profit sharing settings
-          const currentMonthYear = format(new Date(), 'yyyy-MM');
           const { data: profitSharing } = await supabase
             .rpc('get_franchise_profit_sharing', {
               target_franchise_id: franchiseId,
@@ -199,6 +215,20 @@ const Dashboard = () => {
             const monthlyRevenue = (newStats.thisMonthWorkerIncome || 0) + (newStats.thisMonthAdminIncome || 0);
             newStats.adminProfitShare = monthlyRevenue * (profitSharing[0].admin_percentage / 100);
           }
+
+          // Debug logging
+          console.log('Dashboard Stats Franchise:', {
+            franchiseId,
+            month: currentMonthYear,
+            totalWorkerIncome: newStats.totalWorkerIncome,
+            thisMonthWorkerIncome: newStats.thisMonthWorkerIncome,
+            totalAdminIncome: newStats.totalAdminIncome,
+            thisMonthAdminIncome: newStats.thisMonthAdminIncome,
+            totalExpenses: newStats.totalExpenses,
+            thisMonthExpenses: newStats.thisMonthExpenses,
+            startDate,
+            endDate
+          });
         }
       }
 
@@ -318,7 +348,7 @@ const Dashboard = () => {
           monthlyData[month].expenses += Number(item.nominal);
         });
 
-        // Calculate omset and get profit sharing for each month
+        // Calculate omset (standardized with FinancialReportPage: revenue = admin + worker - expenses)
         for (const monthKey in monthlyData) {
           const data = monthlyData[monthKey];
           const totalRevenue = data.adminIncome + data.workerIncome;
@@ -334,7 +364,9 @@ const Dashboard = () => {
             ? totalRevenue * (profitSharing[0].admin_percentage / 100) 
             : totalRevenue * 0.2; // default 20%
 
-          data.omset = totalRevenue - data.expenses - profitShareAmount;
+          // Standardized calculation: omset = revenue (admin + worker - expenses) - profit sharing
+          const revenue = totalRevenue - data.expenses;
+          data.omset = revenue - profitShareAmount;
           data.profitSharing = profitShareAmount;
         }
 
