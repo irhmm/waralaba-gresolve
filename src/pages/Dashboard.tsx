@@ -565,7 +565,10 @@ const Dashboard = () => {
       'Pendapatan Worker': item.workerIncome,
       'Pengeluaran': item.expenses,
       ...(userRole?.role === 'super_admin' && { 'Total Bagi Hasil': item.profitSharing || 0 }),
-      ...(userRole?.role !== 'super_admin' && { 'Omset': item.omset || 0 })
+      ...(userRole?.role !== 'super_admin' && { 
+        'Bagi Hasil Owner': item.profitSharing || 0,
+        'Omset': item.omset || 0 
+      })
     }));
 
     exportToExcel(exportData, 'ringkasan_bulanan_dashboard', 'Ringkasan Bulanan');
@@ -985,7 +988,10 @@ const Dashboard = () => {
                           <TableHead className="font-semibold text-blue-900 text-right">Total Bagi Hasil</TableHead>
                         )}
                         {userRole?.role !== 'super_admin' && (
-                          <TableHead className="font-semibold text-blue-900 text-right">Omset</TableHead>
+                          <>
+                            <TableHead className="font-semibold text-blue-900 text-right">Bagi Hasil Owner</TableHead>
+                            <TableHead className="font-semibold text-blue-900 text-right">Omset</TableHead>
+                          </>
                         )}
                       </TableRow>
                     </TableHeader>
@@ -1013,9 +1019,14 @@ const Dashboard = () => {
                             </TableCell>
                           )}
                           {userRole?.role !== 'super_admin' && (
-                            <TableCell className="text-right text-emerald-600 font-semibold">
-                              {formatCurrency(item.omset || 0)}
-                            </TableCell>
+                            <>
+                              <TableCell className="text-right text-orange-600 font-medium">
+                                {formatCurrency(item.profitSharing || 0)}
+                              </TableCell>
+                              <TableCell className="text-right text-emerald-600 font-semibold">
+                                {formatCurrency(item.omset || 0)}
+                              </TableCell>
+                            </>
                           )}
                         </TableRow>
                       ))}
@@ -1039,9 +1050,14 @@ const Dashboard = () => {
                             </TableCell>
                           )}
                           {userRole?.role !== 'super_admin' && (
-                            <TableCell className="text-right text-emerald-700 font-bold">
-                              {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.omset || 0), 0))}
-                            </TableCell>
+                            <>
+                              <TableCell className="text-right text-orange-700 font-bold">
+                                {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.profitSharing || 0), 0))}
+                              </TableCell>
+                              <TableCell className="text-right text-emerald-700 font-bold">
+                                {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.omset || 0), 0))}
+                              </TableCell>
+                            </>
                           )}
                         </TableRow>
                       )}

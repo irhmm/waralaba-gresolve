@@ -99,7 +99,7 @@ export default function FranchiseProfitSharingPage() {
           franchise_name: item.franchise_name,
           monthly_revenue: item.total_revenue ?? 0,
           admin_percentage: item.admin_percentage ?? 20,
-          profit_share_amount: item.share_nominal ?? (item.total_revenue * item.admin_percentage / 100) ?? 0,
+          profit_share_amount: item.share_nominal ?? ((item.total_revenue ?? 0) * (item.admin_percentage ?? 20) / 100),
           payment_status: item.payment_status as 'paid' | 'unpaid'
         })) ?? [];
       } catch (error) {
