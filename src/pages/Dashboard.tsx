@@ -1051,9 +1051,7 @@ const Dashboard = () => {
                           )}
                           {userRole?.role !== 'super_admin' && (
                             <>
-                              <TableCell className="text-right text-orange-700 font-bold">
-                                {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.profitSharing || 0), 0))}
-                              </TableCell>
+                              <TableCell></TableCell>
                               <TableCell className="text-right text-emerald-700 font-bold">
                                 {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.omset || 0), 0))}
                               </TableCell>
