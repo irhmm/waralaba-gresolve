@@ -223,49 +223,39 @@ export default function WorkerRekapPage() {
   }
 
   return (
-    <div className="touch-spacing space-y-6">
+    <div className="touch-spacing space-y-4">
       {/* Header with Total Stats */}
-      <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <CardTitle className="text-2xl text-white">Rekap Worker Wara</CardTitle>
-              <CardDescription className="text-blue-100">
-                Data pendapatan worker dari semua franchise
-              </CardDescription>
-            </div>
-            <div className="flex gap-4 text-right">
-              <div>
-                <p className="text-sm text-blue-100">Total Data</p>
-                <p className="text-2xl font-bold">{totalData}</p>
-              </div>
-              <div>
-                <p className="text-sm text-blue-100">Total Fee</p>
-                <p className="text-2xl font-bold">Rp {totalFee.toLocaleString('id-ID')}</p>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-      </Card>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pb-3 border-b">
+        <div>
+          <h1 className="text-2xl font-bold">Rekap Worker Wara</h1>
+          <p className="text-sm text-muted-foreground">Data pendapatan worker dari semua franchise</p>
+        </div>
+        <div className="flex gap-3">
+          <Card className="p-3">
+            <p className="text-xs text-muted-foreground">Total Data</p>
+            <p className="text-xl font-bold">{totalData}</p>
+          </Card>
+          <Card className="p-3">
+            <p className="text-xs text-muted-foreground">Total Fee</p>
+            <p className="text-xl font-bold text-green-600">Rp {totalFee.toLocaleString('id-ID')}</p>
+          </Card>
+        </div>
+      </div>
 
       {/* Monthly Summary Cards */}
       {Object.keys(groupedData).length > 0 && (
-        <div className="responsive-grid sm-2 lg-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {Object.entries(groupedData)
             .sort(([a], [b]) => b.localeCompare(a))
-            .slice(0, 6)
+            .slice(0, 3)
             .map(([month, data]) => (
-            <Card key={month} className="bg-gradient-to-r from-blue-50 to-white border-blue-200">
-              <CardContent className="p-3 sm:p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-blue-600">{data.label}</p>
-                    <p className="text-xl sm:text-2xl font-bold text-blue-900">
-                      Rp {data.total.toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-xs text-blue-500">{data.items.length} transaksi</p>
-                  </div>
-                </div>
+            <Card key={month} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-3">
+                <p className="text-xs text-muted-foreground mb-1">{data.label}</p>
+                <p className="text-lg font-bold text-green-600">
+                  Rp {data.total.toLocaleString('id-ID')}
+                </p>
+                <p className="text-xs text-muted-foreground">{data.items.length} transaksi</p>
               </CardContent>
             </Card>
           ))}
@@ -273,54 +263,50 @@ export default function WorkerRekapPage() {
       )}
 
       {/* Filters and Actions */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-4 mb-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Cari berdasarkan code, jobdesk, nama worker, franchise..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <div className="flex gap-2 flex-wrap">
-              <MonthSelector
-                value={selectedMonth}
-                onValueChange={setSelectedMonth}
-                tables={['worker_income']}
-                placeholder="Semua Bulan"
-                showSearch={true}
-                includeAll={true}
-              />
-              <Button onClick={handleExport} variant="outline" className="mobile-btn">
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline ml-2">Export Excel</span>
-              </Button>
-            </div>
-          </div>
-          <RealtimeStatus status={connectionStatus} onReconnect={reconnect} />
-        </CardHeader>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari berdasarkan code, jobdesk, nama worker, franchise..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <MonthSelector
+          value={selectedMonth}
+          onValueChange={setSelectedMonth}
+          tables={['worker_income']}
+          placeholder="Semua Bulan"
+          showSearch={true}
+          includeAll={true}
+        />
+        <Button onClick={handleExport} variant="outline">
+          <Download className="h-4 w-4 mr-2" />
+          <span className="hidden sm:inline">Export</span>
+        </Button>
+      </div>
 
-        <CardContent>
+      <Card>
+        <CardContent className="p-0">
+
           {Object.keys(paginatedGroupedData).length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-12 text-muted-foreground">
               Tidak ada data ditemukan
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="divide-y">
               {Object.entries(paginatedGroupedData).map(([date, group]) => (
-                <div key={date} className="space-y-4">
+                <div key={date} className="py-3">
                   {/* Date Header */}
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-2">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3 bg-muted/30 p-2 rounded">
                     <div>
-                      <h3 className="text-lg font-semibold text-foreground">{group.label}</h3>
-                      <p className="text-sm text-muted-foreground">{group.items.length} transaksi</p>
+                      <h3 className="text-sm font-semibold">{group.label}</h3>
+                      <p className="text-xs text-muted-foreground">{group.items.length} transaksi</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-muted-foreground">TOTAL HARI INI</p>
-                      <p className="text-xl font-bold text-blue-600">
+                    <div className="bg-primary text-primary-foreground px-2 py-1 rounded text-right">
+                      <p className="text-xs">Total</p>
+                      <p className="text-sm font-bold">
                         Rp {group.total.toLocaleString('id-ID')}
                       </p>
                     </div>
@@ -330,47 +316,45 @@ export default function WorkerRekapPage() {
                   <div className="hidden md:block">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Kode</TableHead>
-                          <TableHead>Job Desk</TableHead>
-                          <TableHead>Worker</TableHead>
-                          <TableHead>Franchise</TableHead>
-                          <TableHead className="text-right">Fee</TableHead>
-                          <TableHead>Waktu</TableHead>
-                          <TableHead className="text-center">Aksi</TableHead>
+                        <TableRow className="text-xs">
+                          <TableHead className="py-2">Kode</TableHead>
+                          <TableHead className="py-2">Job Desk</TableHead>
+                          <TableHead className="py-2">Worker</TableHead>
+                          <TableHead className="py-2">Franchise</TableHead>
+                          <TableHead className="py-2 text-right">Fee</TableHead>
+                          <TableHead className="py-2">Waktu</TableHead>
+                          <TableHead className="py-2 text-center">Aksi</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {group.items.map((item) => (
-                          <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.code}</TableCell>
-                            <TableCell>{item.jobdesk}</TableCell>
-                            <TableCell>{item.worker_name}</TableCell>
-                            <TableCell>
-                              <div>
+                          <TableRow key={item.id} className="text-sm">
+                            <TableCell className="py-2 font-medium">{item.code}</TableCell>
+                            <TableCell className="py-2">{item.jobdesk}</TableCell>
+                            <TableCell className="py-2">{item.worker_name}</TableCell>
+                            <TableCell className="py-2">
+                              <div className="text-xs">
                                 <div className="font-medium">{item.franchises?.name || '-'}</div>
-                                <div className="text-xs text-muted-foreground">
+                                <div className="text-muted-foreground">
                                   {item.franchises?.franchise_id || '-'}
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-right font-medium">
+                            <TableCell className="py-2 text-right font-semibold text-green-600">
                               Rp {item.fee.toLocaleString('id-ID')}
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="py-2 text-xs text-muted-foreground">
                               {format(new Date(item.tanggal), 'HH:mm')}
                             </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2 justify-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleDelete(item.id)}
-                                  className="text-destructive hover:text-destructive"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
+                            <TableCell className="py-2 text-center">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDelete(item.id)}
+                                className="h-7 w-7 text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -379,38 +363,33 @@ export default function WorkerRekapPage() {
                   </div>
 
                   {/* Cards for Mobile */}
-                  <div className="md:hidden space-y-3">
+                  <div className="md:hidden space-y-2">
                     {group.items.map((item) => (
-                      <Card key={item.id} className="p-4">
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <div className="font-medium">{item.code}</div>
-                              <div className="text-sm text-muted-foreground">{item.jobdesk}</div>
+                      <Card key={item.id} className="p-3">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 text-xs mb-1">
+                              <span className="font-medium">{item.code}</span>
+                              <span className="text-muted-foreground">•</span>
+                              <span className="text-muted-foreground truncate">{item.franchises?.name}</span>
                             </div>
-                            <div className="text-right">
-                              <div className="font-bold text-blue-600">
-                                Rp {item.fee.toLocaleString('id-ID')}
-                              </div>
-                              <div className="text-xs text-muted-foreground">
-                                {format(new Date(item.tanggal), 'HH:mm')}
-                              </div>
-                            </div>
+                            <div className="text-sm font-medium mb-1">{item.jobdesk}</div>
+                            <div className="text-xs text-muted-foreground">{item.worker_name}</div>
                           </div>
-                          <div className="flex justify-between items-center pt-2 border-t">
-                            <div>
-                              <div className="text-sm">{item.worker_name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {item.franchises?.name} ({item.franchises?.franchise_id})
-                              </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-bold text-green-600 text-sm">
+                              Rp {item.fee.toLocaleString('id-ID')}
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {format(new Date(item.tanggal), 'HH:mm')}
                             </div>
                             <Button
                               variant="ghost"
-                              size="sm"
+                              size="icon"
                               onClick={() => handleDelete(item.id)}
-                              className="text-destructive hover:text-destructive"
+                              className="h-6 w-6 mt-1 text-destructive"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
@@ -421,22 +400,20 @@ export default function WorkerRekapPage() {
               ))}
             </div>
           )}
-
-          {/* Pagination */}
-          {flattenedData.length > 0 && (
-            <div className="mt-4">
-              <DataTablePagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                pageSize={pageSize}
-                totalItems={flattenedData.length}
-                onPageChange={setCurrentPage}
-                onPageSizeChange={setPageSize}
-              />
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {/* Pagination */}
+      {flattenedData.length > 0 && (
+        <DataTablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={flattenedData.length}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={setPageSize}
+        />
+      )}
     </div>
   );
 }
