@@ -263,7 +263,7 @@ export default function WorkerRekapPage() {
       )}
 
       {/* Filters and Actions */}
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row gap-2 items-end">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -273,15 +273,18 @@ export default function WorkerRekapPage() {
             className="pl-9"
           />
         </div>
-        <MonthSelector
-          value={selectedMonth}
-          onValueChange={setSelectedMonth}
-          tables={['worker_income']}
-          placeholder="Semua Bulan"
-          showSearch={true}
-          includeAll={true}
-        />
-        <Button onClick={handleExport} variant="outline">
+        <div className="w-full sm:w-[200px]">
+          <MonthSelector
+            value={selectedMonth}
+            onValueChange={setSelectedMonth}
+            tables={['worker_income']}
+            placeholder="Semua Bulan"
+            label=""
+            showSearch={true}
+            includeAll={true}
+          />
+        </div>
+        <Button onClick={handleExport} variant="outline" className="whitespace-nowrap">
           <Download className="h-4 w-4 mr-2" />
           <span className="hidden sm:inline">Export</span>
         </Button>

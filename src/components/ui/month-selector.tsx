@@ -163,7 +163,7 @@ export function MonthSelector({
   if (showSearch && availableMonths.length > 10) {
     return (
       <div className="space-y-2">
-        <Label>{label}</Label>
+        {label && <Label>{label}</Label>}
         <Popover open={isOpen} onOpenChange={setIsOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -177,8 +177,8 @@ export function MonthSelector({
               <CalendarIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
-            <div className="p-2">
+          <PopoverContent className="w-[280px] p-0 bg-popover z-50" align="start">
+            <div className="p-2 border-b">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -189,7 +189,7 @@ export function MonthSelector({
                 />
               </div>
             </div>
-            <div className="max-h-60 overflow-auto">
+            <div className="max-h-60 overflow-auto bg-popover">
               {filteredMonths.length === 0 ? (
                 <div className="p-2 text-sm text-muted-foreground text-center">
                   {loading ? 'Memuat...' : 'Tidak ada data ditemukan'}
@@ -221,12 +221,12 @@ export function MonthSelector({
 
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
+      {label && <Label>{label}</Label>}
       <Select value={value} onValueChange={onValueChange} disabled={loading}>
         <SelectTrigger>
           <SelectValue placeholder={loading ? "Memuat..." : placeholder} />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-popover z-50">
           {availableMonths.map((month) => (
             <SelectItem key={month.value} value={month.value}>
               {month.label}
