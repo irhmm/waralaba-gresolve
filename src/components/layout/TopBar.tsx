@@ -38,11 +38,11 @@ export const TopBar = () => {
   };
 
   return (
-    <header className="h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-6">
+    <header className="sticky top-0 z-40 h-14 sm:h-16 border-b border-border bg-card flex items-center justify-between px-3 sm:px-6">
       <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-        <SidebarTrigger className="hidden md:flex" />
+        <SidebarTrigger className="flex-shrink-0" />
         
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 ml-12 md:ml-0">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-primary flex-shrink-0" />
           <div className="min-w-0">
             <h1 className="text-base sm:text-lg md:text-xl font-semibold text-foreground truncate">
