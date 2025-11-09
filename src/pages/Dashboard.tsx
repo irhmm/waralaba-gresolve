@@ -303,23 +303,39 @@ const Dashboard = () => {
         setMonthlySummary(summaryArray);
 
       } else if (userRole.franchise_id && (userRole.role === 'franchise' || userRole.role === 'admin_keuangan')) {
-        // Fetch monthly summary for specific franchise
+        // Fetch monthly summary for specific franchise - OPTIMIZED: Single batch query
         const franchiseId = userRole.franchise_id;
 
-        const { data: adminIncome } = await supabase
-          .from('admin_income')
-          .select('nominal, tanggal')
-          .eq('franchise_id', franchiseId);
-        
-        const { data: workerIncome } = await supabase
-          .from('worker_income')
-          .select('fee, tanggal')
-          .eq('franchise_id', franchiseId);
-        
-        const { data: expenses } = await supabase
-          .from('expenses')
-          .select('nominal, tanggal')
-          .eq('franchise_id', franchiseId);
+        // Fetch all data in parallel for this franchise
+        const [
+          { data: adminIncome },
+          { data: workerIncome },
+          { data: expenses },
+          { data: allProfitSharing }
+        ] = await Promise.all([
+          supabase
+            .from('admin_income')
+            .select('nominal, tanggal')
+            .eq('franchise_id', franchiseId),
+          supabase
+            .from('worker_income')
+            .select('fee, tanggal')
+            .eq('franchise_id', franchiseId),
+          supabase
+            .from('expenses')
+            .select('nominal, tanggal')
+            .eq('franchise_id', franchiseId),
+          supabase
+            .from('franchise_profit_sharing')
+            .select('month_year, admin_percentage, franchise_percentage')
+            .eq('franchise_id', franchiseId)
+        ]);
+
+        // Create profit sharing lookup map
+        const profitByMonth: { [key: string]: { admin_percentage: number } } = {};
+        allProfitSharing?.forEach(item => {
+          profitByMonth[item.month_year] = { admin_percentage: item.admin_percentage };
+        });
 
         // Group by month
         const monthlyData: { [key: string]: MonthlySummary } = {};
@@ -348,20 +364,15 @@ const Dashboard = () => {
           monthlyData[month].expenses += Number(item.nominal);
         });
 
-        // Calculate omset (standardized with FinancialReportPage: revenue = admin + worker - expenses)
+        // Calculate omset using pre-fetched profit sharing data
         for (const monthKey in monthlyData) {
           const data = monthlyData[monthKey];
           const totalRevenue = data.adminIncome + data.workerIncome;
           
-          // Get profit sharing for this month
-          const { data: profitSharing } = await supabase
-            .rpc('get_franchise_profit_sharing', {
-              target_franchise_id: franchiseId,
-              target_month: monthKey
-            });
-          
-          const profitShareAmount = profitSharing && profitSharing.length > 0 
-            ? totalRevenue * (profitSharing[0].admin_percentage / 100) 
+          // Use profit sharing from lookup map
+          const profitData = profitByMonth[monthKey];
+          const profitShareAmount = profitData
+            ? totalRevenue * (profitData.admin_percentage / 100) 
             : totalRevenue * 0.2; // default 20%
 
           // Standardized calculation: omset = revenue (admin + worker - expenses) - profit sharing
@@ -385,73 +396,84 @@ const Dashboard = () => {
 
     try {
       const franchiseId = userRole.franchise_id;
-      const currentDate = new Date();
-      const months: ChartData[] = [];
+      const twelveMonthsAgo = subMonths(new Date(), 11);
+      const monthStart = startOfMonth(twelveMonthsAgo);
 
-      // Generate data for the last 12 months
-      for (let i = 11; i >= 0; i--) {
-        const targetDate = subMonths(currentDate, i);
-        const monthStart = startOfMonth(targetDate);
-        const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
-        const monthKey = format(targetDate, 'yyyy-MM');
-
-        // Fetch admin income for this month
-        const { data: adminIncome } = await supabase
+      // OPTIMIZED: Fetch all data for last 12 months in parallel (4 queries instead of 48)
+      const [
+        { data: adminIncome },
+        { data: workerIncome },
+        { data: expenses },
+        { data: profitSharing }
+      ] = await Promise.all([
+        supabase
           .from('admin_income')
-          .select('nominal')
+          .select('nominal, tanggal')
           .eq('franchise_id', franchiseId)
-          .gte('tanggal', monthStart.toISOString())
-          .lte('tanggal', monthEnd.toISOString());
-
-        // Fetch worker income for this month
-        const { data: workerIncome } = await supabase
+          .gte('tanggal', monthStart.toISOString()),
+        supabase
           .from('worker_income')
-          .select('fee')
+          .select('fee, tanggal')
           .eq('franchise_id', franchiseId)
-          .gte('tanggal', monthStart.toISOString())
-          .lte('tanggal', monthEnd.toISOString());
-
-        // Fetch expenses for this month
-        const { data: expenses } = await supabase
+          .gte('tanggal', monthStart.toISOString()),
+        supabase
           .from('expenses')
-          .select('nominal')
+          .select('nominal, tanggal')
           .eq('franchise_id', franchiseId)
-          .gte('tanggal', monthStart.toISOString())
-          .lte('tanggal', monthEnd.toISOString());
+          .gte('tanggal', monthStart.toISOString()),
+        supabase
+          .from('franchise_profit_sharing')
+          .select('month_year, admin_percentage')
+          .eq('franchise_id', franchiseId)
+      ]);
 
+      // Create profit sharing lookup map
+      const profitByMonth: { [key: string]: number } = {};
+      profitSharing?.forEach(item => {
+        profitByMonth[item.month_year] = item.admin_percentage;
+      });
+
+      // Group data by month in memory
+      const chartData: ChartData[] = [];
+      
+      for (let i = 11; i >= 0; i--) {
+        const targetDate = subMonths(new Date(), i);
+        const monthKey = format(targetDate, 'yyyy-MM');
+        
+        // Filter data for this month
+        const monthAdminIncome = adminIncome?.filter(item => 
+          format(new Date(item.tanggal), 'yyyy-MM') === monthKey
+        );
+        const monthWorkerIncome = workerIncome?.filter(item => 
+          format(new Date(item.tanggal), 'yyyy-MM') === monthKey
+        );
+        const monthExpenses = expenses?.filter(item => 
+          format(new Date(item.tanggal), 'yyyy-MM') === monthKey
+        );
+        
         // Calculate totals
-        const adminTotal = adminIncome?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
-        const workerTotal = workerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
-        const expensesTotal = expenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
-
+        const adminTotal = monthAdminIncome?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+        const workerTotal = monthWorkerIncome?.reduce((sum, item) => sum + Number(item.fee), 0) || 0;
+        const expensesTotal = monthExpenses?.reduce((sum, item) => sum + Number(item.nominal), 0) || 0;
+        
         // Only include months that have data
         if (adminTotal > 0 || workerTotal > 0 || expensesTotal > 0) {
-          // Get profit sharing for this month
-          const { data: profitSharing } = await supabase
-            .rpc('get_franchise_profit_sharing', {
-              target_franchise_id: franchiseId,
-              target_month: monthKey
-            });
-
           const totalRevenue = adminTotal + workerTotal;
-          const profitShareAmount = profitSharing && profitSharing.length > 0 
-            ? totalRevenue * (profitSharing[0].admin_percentage / 100) 
-            : totalRevenue * 0.2; // default 20%
-
-          const omset = totalRevenue - expensesTotal - profitShareAmount;
-
-          months.push({
+          const adminPercentage = profitByMonth[monthKey] || 20; // default 20%
+          const profitShareAmount = totalRevenue * (adminPercentage / 100);
+          
+          chartData.push({
             month: monthKey,
             monthLabel: format(targetDate, 'MMM yyyy'),
             adminIncome: adminTotal,
             workerIncome: workerTotal,
             expenses: expensesTotal,
-            omset: Math.max(0, omset) // Ensure omset doesn't go negative
+            omset: Math.max(0, totalRevenue - expensesTotal - profitShareAmount)
           });
         }
       }
 
-      setChartData(months);
+      setChartData(chartData);
     } catch (error) {
       console.error('Error fetching chart data:', error);
     }
@@ -459,10 +481,21 @@ const Dashboard = () => {
 
   const fetchProfitSharingChartData = async () => {
     try {
-      // Get all franchises
-      const { data: franchises } = await supabase
-        .from('franchises')
-        .select('id, name');
+      // OPTIMIZED: Fetch franchises and all profit sharing data in parallel (2 queries instead of 24+)
+      const twelveMonthsAgo = format(subMonths(startOfMonth(new Date()), 11), 'yyyy-MM');
+      
+      const [
+        { data: franchises },
+        { data: allProfitSharing }
+      ] = await Promise.all([
+        supabase
+          .from('franchises')
+          .select('id, name'),
+        supabase
+          .from('franchise_profit_sharing')
+          .select('franchise_id, month_year, share_nominal')
+          .gte('month_year', twelveMonthsAgo)
+      ]);
 
       if (!franchises || franchises.length === 0) {
         setProfitSharingChartData([]);
@@ -480,8 +513,8 @@ const Dashboard = () => {
       });
       setFranchiseColors(colorMap);
 
-      // Get profit sharing data for the last 12 months
-      const months: ProfitSharingChartData[] = [];
+      // Group data by month and franchise in memory
+      const monthlyData: ProfitSharingChartData[] = [];
       
       for (let i = 11; i >= 0; i--) {
         const targetDate = subMonths(startOfMonth(new Date()), i);
@@ -494,30 +527,23 @@ const Dashboard = () => {
 
         let hasData = false;
 
-        // Get profit sharing data for each franchise for this month
-        for (const franchise of franchises) {
-          const { data: profitSharingData } = await supabase
-            .from('franchise_profit_sharing')
-            .select('share_nominal')
-            .eq('franchise_id', franchise.id)
-            .eq('month_year', monthKey)
-            .maybeSingle();
-
-          const shareAmount = profitSharingData?.share_nominal || 0;
+        // Use pre-fetched data to populate each franchise's share
+        franchises.forEach(franchise => {
+          const shareData = allProfitSharing?.find(item => 
+            item.franchise_id === franchise.id && item.month_year === monthKey
+          );
+          const shareAmount = shareData?.share_nominal || 0;
           monthData[franchise.name] = shareAmount;
-          
-          if (shareAmount > 0) {
-            hasData = true;
-          }
-        }
+          if (shareAmount > 0) hasData = true;
+        });
 
         // Only include months that have data
         if (hasData) {
-          months.push(monthData);
+          monthlyData.push(monthData);
         }
       }
 
-      setProfitSharingChartData(months);
+      setProfitSharingChartData(monthlyData);
     } catch (error) {
       console.error('Error fetching profit sharing chart data:', error);
     }
