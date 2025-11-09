@@ -645,13 +645,7 @@ export default function WorkerIncomePage() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Data Pendapatan Worker</CardTitle>
-              <CardDescription>
-                Total: {filteredData.length} data | 
-                Total Fee: Rp {filteredData.reduce((sum, item) => sum + item.fee, 0).toLocaleString('id-ID')}
-              </CardDescription>
-            </div>
+            <CardTitle>Data Pendapatan Worker</CardTitle>
             <RealtimeStatus status={connectionStatus} onReconnect={reconnect} />
           </div>
         </CardHeader>
