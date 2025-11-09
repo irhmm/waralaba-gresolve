@@ -728,9 +728,9 @@ const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-900">{formatCurrency(stats.totalWorkerIncome || 0)}</div>
+                <div className="text-2xl font-bold text-blue-900">{formatCurrency(stats.thisMonthWorkerIncome || 0)}</div>
                 <p className="text-xs text-blue-600">
-                  Bulan ini: {formatCurrency(stats.thisMonthWorkerIncome || 0)}
+                  Total akumulasi: {formatCurrency(stats.totalWorkerIncome || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -743,9 +743,9 @@ const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-purple-900">{formatCurrency(stats.totalAdminIncome || 0)}</div>
+                <div className="text-2xl font-bold text-purple-900">{formatCurrency(stats.thisMonthAdminIncome || 0)}</div>
                 <p className="text-xs text-purple-600">
-                  Bulan ini: {formatCurrency(stats.thisMonthAdminIncome || 0)}
+                  Total akumulasi: {formatCurrency(stats.totalAdminIncome || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -758,9 +758,9 @@ const Dashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-red-900">{formatCurrency(stats.totalExpenses || 0)}</div>
+                <div className="text-2xl font-bold text-red-900">{formatCurrency(stats.thisMonthExpenses || 0)}</div>
                 <p className="text-xs text-red-600">
-                  Bulan ini: {formatCurrency(stats.thisMonthExpenses || 0)}
+                  Total akumulasi: {formatCurrency(stats.totalExpenses || 0)}
                 </p>
               </CardContent>
             </Card>
@@ -791,7 +791,7 @@ const Dashboard = () => {
                 <CardContent>
                   <div className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.adminProfitShare || 0)}</div>
                   <p className="text-xs text-emerald-600">
-                    Persentase: {stats.profitSharingPercentage || 20}% dari pendapatan bulanan
+                    Bagi hasil bulan ini ({stats.profitSharingPercentage || 20}% dari pendapatan)
                   </p>
                 </CardContent>
               </Card>
