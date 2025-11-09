@@ -56,6 +56,11 @@ const menuItems = {
       url: '/admin/franchise-profit-sharing',
       icon: TrendingUp,
     },
+    {
+      title: 'Rekap Worker Wara',
+      url: '/admin/worker-rekap',
+      icon: FileText,
+    },
   ],
   franchise: [
     {

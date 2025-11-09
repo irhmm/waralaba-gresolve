@@ -63,3 +63,17 @@ export const exportWorkersToExcel = (data: any[]) => {
 
   exportToExcel(exportData, 'workers_data', 'Data Workers');
 };
+
+export const exportWorkerRekapToExcel = (data: any[]) => {
+  const exportData = data.map(item => ({
+    'Kode': item.code,
+    'Job Desk': item.jobdesk,
+    'Worker': item.worker_name,
+    'Franchise': item.franchises?.name || '-',
+    'Kode Franchise': item.franchises?.franchise_id || '-',
+    'Fee': item.fee,
+    'Tanggal': format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')
+  }));
+
+  exportToExcel(exportData, 'rekap_worker_wara', 'Rekap Worker Wara');
+};
