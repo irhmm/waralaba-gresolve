@@ -244,22 +244,22 @@ const AdminRekapPage = () => {
         </div>
 
         <Card>
-          <CardHeader>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <CardTitle>Ringkasan Pendapatan Bulanan</CardTitle>
-              <div className="flex flex-col sm:flex-row gap-2">
-                <div className="relative flex-1 sm:flex-initial">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Cari franchise..."
-                    value={searchTerm}
-                    onChange={(e) => {
-                      setSearchTerm(e.target.value);
-                      setCurrentPage(1);
-                    }}
-                    className="pl-9 w-full sm:w-[250px]"
-                  />
-                </div>
+          <CardHeader className="space-y-4">
+            <CardTitle>Ringkasan Pendapatan Bulanan</CardTitle>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Cari franchise..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="pl-9"
+                />
+              </div>
+              <div className="w-full sm:w-[200px]">
                 <MonthSelector
                   value={selectedMonth}
                   onValueChange={(value) => {
@@ -268,12 +268,14 @@ const AdminRekapPage = () => {
                   }}
                   tables={['admin_income']}
                   includeAll
+                  placeholder="Semua Bulan"
+                  label=""
                 />
-                <Button onClick={handleExport} variant="outline" size="default">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
               </div>
+              <Button onClick={handleExport} variant="outline" className="sm:w-auto">
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
