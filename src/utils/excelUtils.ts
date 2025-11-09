@@ -80,11 +80,11 @@ export const exportWorkerRekapToExcel = (data: any[]) => {
 
 export const exportAdminRekapToExcel = (data: any[]) => {
   const exportData = data.map(item => ({
-    'Kode': item.code,
-    'Franchise': item.franchises?.name || '-',
-    'Kode Franchise': item.franchises?.franchise_id || '-',
-    'Nominal': item.nominal,
-    'Tanggal': format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')
+    'Franchise': item.franchise_name || '-',
+    'Kode Franchise': item.franchise_code || '-',
+    'Bulan': item.month_display || '-',
+    'Total Pendapatan': item.total_nominal || 0,
+    'Jumlah Transaksi': item.transaction_count || 0,
   }));
 
   exportToExcel(exportData, 'rekap_admin_wara', 'Rekap Admin Wara');
