@@ -77,3 +77,15 @@ export const exportWorkerRekapToExcel = (data: any[]) => {
 
   exportToExcel(exportData, 'rekap_worker_wara', 'Rekap Worker Wara');
 };
+
+export const exportAdminRekapToExcel = (data: any[]) => {
+  const exportData = data.map(item => ({
+    'Kode': item.code,
+    'Franchise': item.franchises?.name || '-',
+    'Kode Franchise': item.franchises?.franchise_id || '-',
+    'Nominal': item.nominal,
+    'Tanggal': format(new Date(item.tanggal), 'dd/MM/yyyy HH:mm')
+  }));
+
+  exportToExcel(exportData, 'rekap_admin_wara', 'Rekap Admin Wara');
+};

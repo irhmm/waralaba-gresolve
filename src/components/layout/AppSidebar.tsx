@@ -61,6 +61,11 @@ const menuItems = {
       url: '/admin/worker-rekap',
       icon: FileText,
     },
+    {
+      title: 'Rekap Admin Wara',
+      url: '/admin/admin-rekap',
+      icon: DollarSign,
+    },
   ],
   franchise: [
     {
