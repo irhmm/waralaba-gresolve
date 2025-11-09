@@ -20,6 +20,7 @@ import AdminIncomePage from "./pages/AdminIncomePage";
 import WorkerIncomePage from "./pages/WorkerIncomePage";
 import ExpensesPage from "./pages/ExpensesPage";
 import WorkersPage from "./pages/WorkersPage";
+import AllWorkersPage from "./pages/admin/AllWorkersPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="admin/franchise-profit-sharing" element={<RouteGuard><FranchiseProfitSharingPage /></RouteGuard>} />
               <Route path="admin/worker-rekap" element={<RouteGuard><WorkerRekapPage /></RouteGuard>} />
               <Route path="admin/admin-rekap" element={<RouteGuard><AdminRekapPage /></RouteGuard>} />
+              <Route path="admin/all-workers" element={<RouteGuard><AllWorkersPage /></RouteGuard>} />
               <Route path="admin-income" element={<RouteGuard><AdminIncomePage /></RouteGuard>} />
               <Route path="worker-income" element={<RouteGuard><WorkerIncomePage /></RouteGuard>} />
               <Route path="expenses" element={<RouteGuard><ExpensesPage /></RouteGuard>} />

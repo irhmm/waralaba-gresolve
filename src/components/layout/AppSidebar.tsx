@@ -63,6 +63,11 @@ const menuItems = {
       url: '/admin/admin-rekap',
       icon: DollarSign,
     },
+    {
+      title: 'Data Worker',
+      url: '/admin/all-workers',
+      icon: Users,
+    },
   ],
   franchise: [
     {
