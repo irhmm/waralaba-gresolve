@@ -8,6 +8,7 @@ import { MonthSelector } from '@/components/ui/month-selector';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { RealtimeStatus } from '@/components/ui/realtime-status';
@@ -244,22 +245,24 @@ export default function WorkerRekapPage() {
 
       {/* Monthly Summary Cards */}
       {Object.keys(groupedData).length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {Object.entries(groupedData)
-            .sort(([a], [b]) => b.localeCompare(a))
-            .slice(0, 3)
-            .map(([month, data]) => (
-            <Card key={month} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-3">
-                <p className="text-xs text-muted-foreground mb-1">{data.label}</p>
-                <p className="text-lg font-bold text-green-600">
-                  Rp {data.total.toLocaleString('id-ID')}
-                </p>
-                <p className="text-xs text-muted-foreground">{data.items.length} transaksi</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <ScrollArea className="w-full whitespace-nowrap">
+          <div className="flex gap-3 pb-4">
+            {Object.entries(groupedData)
+              .sort(([a], [b]) => b.localeCompare(a))
+              .map(([month, data]) => (
+              <Card key={month} className="hover:shadow-md transition-shadow flex-shrink-0 w-[200px]">
+                <CardContent className="p-3">
+                  <p className="text-xs text-muted-foreground mb-1">{data.label}</p>
+                  <p className="text-lg font-bold text-green-600">
+                    Rp {data.total.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{data.items.length} transaksi</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+          <ScrollBar orientation="horizontal" />
+        </ScrollArea>
       )}
 
       {/* Filters and Actions */}
