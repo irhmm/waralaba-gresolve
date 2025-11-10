@@ -38,6 +38,7 @@ export default function WorkerRekapPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('all');
+  const [cardFilterMonth, setCardFilterMonth] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -245,24 +246,39 @@ export default function WorkerRekapPage() {
 
       {/* Monthly Summary Cards */}
       {Object.keys(groupedData).length > 0 && (
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-3 pb-4">
-            {Object.entries(groupedData)
-              .sort(([a], [b]) => b.localeCompare(a))
-              .map(([month, data]) => (
-              <Card key={month} className="hover:shadow-md transition-shadow flex-shrink-0 w-[200px]">
-                <CardContent className="p-3">
-                  <p className="text-xs text-muted-foreground mb-1">{data.label}</p>
-                  <p className="text-lg font-bold text-green-600">
-                    Rp {data.total.toLocaleString('id-ID')}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{data.items.length} transaksi</p>
-                </CardContent>
-              </Card>
-            ))}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Filter Ringkasan:</span>
+            <MonthSelector
+              value={cardFilterMonth}
+              onValueChange={setCardFilterMonth}
+              tables={['worker_income']}
+              placeholder="Semua Bulan"
+              label=""
+              showSearch={false}
+              includeAll={true}
+            />
           </div>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-3 pb-4">
+              {Object.entries(groupedData)
+                .sort(([a], [b]) => b.localeCompare(a))
+                .filter(([month]) => cardFilterMonth === 'all' || month === cardFilterMonth)
+                .map(([month, data]) => (
+                <Card key={month} className="hover:shadow-md transition-shadow flex-shrink-0 w-[200px]">
+                  <CardContent className="p-3">
+                    <p className="text-xs text-muted-foreground mb-1">{data.label}</p>
+                    <p className="text-lg font-bold text-green-600">
+                      Rp {data.total.toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{data.items.length} transaksi</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
+        </div>
       )}
 
       {/* Filters and Actions */}
