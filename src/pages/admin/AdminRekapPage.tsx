@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { MonthSelector } from '@/components/ui/month-selector';
 import { exportAdminRekapToExcel } from '@/utils/excelUtils';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 
@@ -47,6 +48,7 @@ const AdminRekapPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [cardFilterMonth, setCardFilterMonth] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const isMobile = useIsMobile();
@@ -154,21 +156,26 @@ const AdminRekapPage = () => {
     const summaries: { [key: string]: MonthSummary } = {};
     
     data.forEach((item) => {
-      const month = format(new Date(item.tanggal), 'MMMM yyyy', { locale: id });
-      if (!summaries[month]) {
-        summaries[month] = {
-          month,
+      const monthKey = format(new Date(item.tanggal), 'yyyy-MM');
+      const monthDisplay = format(new Date(item.tanggal), 'MMMM yyyy', { locale: id });
+      if (!summaries[monthKey]) {
+        summaries[monthKey] = {
+          month: monthDisplay,
           totalNominal: 0,
           totalTransactions: 0,
         };
       }
-      summaries[month].totalNominal += Number(item.nominal);
-      summaries[month].totalTransactions += 1;
+      summaries[monthKey].totalNominal += Number(item.nominal);
+      summaries[monthKey].totalTransactions += 1;
     });
 
     return Object.values(summaries)
-      .sort((a, b) => b.totalNominal - a.totalNominal)
-      .slice(0, 3);
+      .sort((a, b) => {
+        // Sort by date descending
+        const dateA = new Date(a.month);
+        const dateB = new Date(b.month);
+        return dateB.getTime() - dateA.getTime();
+      });
   }, [data]);
 
   const handleExport = () => {
@@ -223,24 +230,47 @@ const AdminRekapPage = () => {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {monthSummaries.map((summary, index) => (
-            <Card key={index} className="bg-primary/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium">
-                  {summary.month}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="text-2xl font-bold text-green-600">
-                  Rp {summary.totalNominal.toLocaleString('id-ID')}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {summary.totalTransactions} transaksi
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Filter Ringkasan:</span>
+            <MonthSelector
+              value={cardFilterMonth}
+              onValueChange={setCardFilterMonth}
+              tables={['admin_income']}
+              placeholder="Semua Bulan"
+              label=""
+              showSearch={false}
+              includeAll={true}
+            />
+          </div>
+          <ScrollArea className="w-full whitespace-nowrap">
+            <div className="flex gap-4 pb-4">
+              {monthSummaries
+                .filter((summary) => {
+                  if (cardFilterMonth === 'all') return true;
+                  const summaryMonthKey = format(new Date(summary.month), 'yyyy-MM', { locale: id });
+                  return summaryMonthKey === cardFilterMonth;
+                })
+                .map((summary, index) => (
+                <Card key={index} className="bg-primary/5 flex-shrink-0 w-[250px]">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm font-medium">
+                      {summary.month}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="text-2xl font-bold text-green-600">
+                      Rp {summary.totalNominal.toLocaleString('id-ID')}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {summary.totalTransactions} transaksi
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <ScrollBar orientation="horizontal" />
+          </ScrollArea>
         </div>
 
         <Card>
