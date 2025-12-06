@@ -37,10 +37,20 @@ import {
   AlertTriangle,
   Save,
   Filter,
-  X
+  X,
+  Clock,
+  Activity
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { AssignRoleModal } from '@/components/admin/AssignRoleModal';
 import { SyncRolesButton } from '@/components/admin/SyncRolesButton';
+
+interface LastActivity {
+  activity_type: 'Admin Income' | 'Worker Income' | 'Expenses';
+  created_at: string;
+  detail: string;
+}
 
 interface Franchise {
   id: string;
@@ -55,6 +65,7 @@ interface Franchise {
   total_worker_income?: number;
   total_expenses?: number;
   revenue?: number; // total_admin_income + total_worker_income - total_expenses
+  last_activity?: LastActivity;
 }
 
 interface User {
@@ -169,13 +180,53 @@ const ListFranchisePage = () => {
 
           const revenue = totalAdminIncome + totalWorkerIncome - totalExpenses;
 
+          // Get last activity for this franchise
+          const [lastAdmin, lastWorker, lastExpense] = await Promise.all([
+            supabase
+              .from('admin_income')
+              .select('created_at, code')
+              .eq('franchise_id', franchise.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from('worker_income')
+              .select('created_at, code')
+              .eq('franchise_id', franchise.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            supabase
+              .from('expenses')
+              .select('created_at, keterangan')
+              .eq('franchise_id', franchise.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
+              .maybeSingle()
+          ]);
+
+          // Find the most recent activity
+          const activities: { type: 'Admin Income' | 'Worker Income' | 'Expenses'; data: any }[] = [];
+          if (lastAdmin.data) activities.push({ type: 'Admin Income', data: lastAdmin.data });
+          if (lastWorker.data) activities.push({ type: 'Worker Income', data: lastWorker.data });
+          if (lastExpense.data) activities.push({ type: 'Expenses', data: lastExpense.data });
+
+          const mostRecent = activities.sort((a, b) => 
+            new Date(b.data.created_at).getTime() - new Date(a.data.created_at).getTime()
+          )[0];
+
           return {
             ...franchise,
             worker_count: workerCount || 0,
             total_admin_income: totalAdminIncome,
             total_worker_income: totalWorkerIncome,
             total_expenses: totalExpenses,
-            revenue
+            revenue,
+            last_activity: mostRecent ? {
+              activity_type: mostRecent.type,
+              created_at: mostRecent.data.created_at,
+              detail: mostRecent.data.code || mostRecent.data.keterangan || ''
+            } : undefined
           };
         })
       );
@@ -851,6 +902,29 @@ const ListFranchisePage = () => {
                   </span>
                 </div>
 
+                {/* Last Activity */}
+                {franchise.last_activity && (
+                  <div className="mt-2 pt-2 border-t">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
+                      <Activity className="h-3 w-3" />
+                      <span>Aktivitas terakhir:</span>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-xs">
+                        {franchise.last_activity.activity_type}
+                      </Badge>
+                      <span className="text-xs font-medium">
+                        {format(new Date(franchise.last_activity.created_at), 'dd MMM yyyy HH:mm', { locale: id })}
+                      </span>
+                    </div>
+                    {franchise.last_activity.detail && (
+                      <div className="text-xs text-muted-foreground mt-1 truncate">
+                        {franchise.last_activity.detail}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <Button 
                     size="sm"
@@ -911,6 +985,7 @@ const ListFranchisePage = () => {
                   >
                     Revenue
                   </TableHead>
+                  <TableHead>Aktivitas Terakhir</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -941,6 +1016,20 @@ const ListFranchisePage = () => {
                       <div className={`font-medium ${(franchise.revenue || 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
                         {formatCurrency(franchise.revenue || 0)}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {franchise.last_activity ? (
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="text-xs">
+                            {franchise.last_activity.activity_type}
+                          </Badge>
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(franchise.last_activity.created_at), 'dd/MM/yy HH:mm', { locale: id })}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">-</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
