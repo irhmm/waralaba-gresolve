@@ -22,8 +22,11 @@ import {
   Search,
   Download,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Activity,
+  Clock
 } from 'lucide-react';
+import { id } from 'date-fns/locale';
 
 interface DashboardStats {
   totalFranchises?: number;
@@ -64,6 +67,13 @@ interface ProfitSharingChartData {
   [franchiseName: string]: number | string;
 }
 
+interface RecentActivity {
+  franchise_name: string;
+  activity_type: 'Admin Income' | 'Worker Income' | 'Expenses';
+  created_at: string;
+  detail: string;
+}
+
 const Dashboard = () => {
   const { userRole, user } = useAuth();
   const [stats, setStats] = useState<DashboardStats>({});
@@ -76,6 +86,7 @@ const Dashboard = () => {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [profitSharingChartData, setProfitSharingChartData] = useState<ProfitSharingChartData[]>([]);
   const [franchiseColors, setFranchiseColors] = useState<{ [key: string]: string }>({});
+  const [recentActivities, setRecentActivities] = useState<RecentActivity[]>([]);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -85,6 +96,7 @@ const Dashboard = () => {
     }
     if (userRole?.role === 'super_admin') {
       fetchProfitSharingChartData();
+      fetchRecentActivities();
     }
   }, [userRole]);
 
@@ -549,6 +561,76 @@ const Dashboard = () => {
     }
   };
 
+  const fetchRecentActivities = async () => {
+    try {
+      // Fetch franchises first
+      const { data: franchises } = await supabase
+        .from('franchises')
+        .select('id, name');
+
+      if (!franchises) return;
+
+      // Fetch recent activities from all tables
+      const [adminIncomeRes, workerIncomeRes, expensesRes] = await Promise.all([
+        supabase
+          .from('admin_income')
+          .select('franchise_id, created_at, code')
+          .order('created_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('worker_income')
+          .select('franchise_id, created_at, code')
+          .order('created_at', { ascending: false })
+          .limit(10),
+        supabase
+          .from('expenses')
+          .select('franchise_id, created_at, keterangan')
+          .order('created_at', { ascending: false })
+          .limit(10)
+      ]);
+
+      const franchiseMap = new Map(franchises.map(f => [f.id, f.name]));
+
+      const allActivities: RecentActivity[] = [];
+
+      adminIncomeRes.data?.forEach(item => {
+        allActivities.push({
+          franchise_name: franchiseMap.get(item.franchise_id) || 'Unknown',
+          activity_type: 'Admin Income',
+          created_at: item.created_at,
+          detail: item.code || ''
+        });
+      });
+
+      workerIncomeRes.data?.forEach(item => {
+        allActivities.push({
+          franchise_name: franchiseMap.get(item.franchise_id) || 'Unknown',
+          activity_type: 'Worker Income',
+          created_at: item.created_at,
+          detail: item.code || ''
+        });
+      });
+
+      expensesRes.data?.forEach(item => {
+        allActivities.push({
+          franchise_name: franchiseMap.get(item.franchise_id) || 'Unknown',
+          activity_type: 'Expenses',
+          created_at: item.created_at,
+          detail: item.keterangan || ''
+        });
+      });
+
+      // Sort by created_at and take top 10
+      allActivities.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+
+      setRecentActivities(allActivities.slice(0, 10));
+    } catch (error) {
+      console.error('Error fetching recent activities:', error);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -881,6 +963,53 @@ const Dashboard = () => {
         </Card>
       )}
 
+      {/* Recent Activity Widget for Super Admin */}
+      {userRole?.role === 'super_admin' && recentActivities.length > 0 && (
+        <Card className="card-hover">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Aktivitas Terbaru
+            </CardTitle>
+            <CardDescription>
+              10 aktivitas terakhir dari semua franchise
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentActivities.map((activity, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" className="shrink-0">{activity.franchise_name}</Badge>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Badge variant={
+                          activity.activity_type === 'Admin Income' ? 'default' :
+                          activity.activity_type === 'Worker Income' ? 'outline' : 'destructive'
+                        } className="text-xs">
+                          {activity.activity_type}
+                        </Badge>
+                      </div>
+                      {activity.detail && (
+                        <div className="text-xs text-muted-foreground truncate max-w-[200px] mt-1">
+                          {activity.detail}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground text-right shrink-0">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {format(new Date(activity.created_at), 'dd MMM yyyy', { locale: id })}
+                    </div>
+                    <div>{format(new Date(activity.created_at), 'HH:mm:ss')}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Financial Chart for Franchise and Admin Keuangan */}
       {(userRole?.role === 'franchise' || userRole?.role === 'admin_keuangan') && (

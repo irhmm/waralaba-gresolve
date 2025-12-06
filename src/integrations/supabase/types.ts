@@ -421,10 +421,7 @@ export type Database = {
         Args: { target_user_id?: string }
         Returns: Json
       }
-      generate_franchise_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_franchise_id: { Args: never; Returns: string }
       get_franchise_profit_sharing: {
         Args: { target_franchise_id: string; target_month?: string }
         Returns: {
@@ -452,7 +449,7 @@ export type Database = {
         }[]
       }
       get_global_profit_settings: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           admin_percentage: number
           franchise_percentage: number
@@ -469,10 +466,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
-      get_user_role_rpc: {
-        Args: { target_user_id?: string }
-        Returns: Json
-      }
+      get_user_role_rpc: { Args: { target_user_id?: string }; Returns: Json }
       get_worker_income_public: {
         Args: { franchise_slug_param?: string }
         Returns: {
@@ -486,10 +480,7 @@ export type Database = {
           worker_name: string
         }[]
       }
-      is_super_admin: {
-        Args: { target_user_id?: string }
-        Returns: boolean
-      }
+      is_super_admin: { Args: { target_user_id?: string }; Returns: boolean }
       recalculate_profit_sharing_for_settings_change: {
         Args: { changed_franchise_id: string }
         Returns: undefined
