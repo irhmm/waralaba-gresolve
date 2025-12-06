@@ -161,10 +161,10 @@ export default function WorkerIncomePage() {
       });
     }
 
-    // Worker filter
+    // Worker filter (case-insensitive exact match)
     if (selectedWorker && selectedWorker !== 'all') {
       filtered = filtered.filter(item => 
-        item.worker_name?.toLowerCase().includes(selectedWorker.toLowerCase())
+        item.worker_name?.toLowerCase().trim() === selectedWorker.toLowerCase().trim()
       );
     }
 
@@ -242,14 +242,30 @@ export default function WorkerIncomePage() {
 
   const availableMonths = useMemo(() => getAvailableMonths(workerIncomes), [workerIncomes]);
 
-  // Get unique worker names for filter
+  // Helper function for Title Case
+  const toTitleCase = (str: string) => {
+    return str.trim().toLowerCase().split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Get unique worker names for filter (case-insensitive)
   const uniqueWorkerNames = useMemo(() => {
-    const names = workerIncomes
+    const namesMap = new Map<string, string>();
+    
+    workerIncomes
       .filter(item => item.worker_name)
-      .map(item => item.worker_name)
-      .filter((name, index, arr) => arr.indexOf(name) === index)
-      .sort();
-    return names;
+      .forEach(item => {
+        const normalizedName = item.worker_name.toLowerCase().trim();
+        // Keep the first occurrence's casing
+        if (!namesMap.has(normalizedName)) {
+          namesMap.set(normalizedName, item.worker_name.trim());
+        }
+      });
+    
+    return Array.from(namesMap.values()).sort((a, b) => 
+      a.toLowerCase().localeCompare(b.toLowerCase())
+    );
   }, [workerIncomes]);
 
   const handleExport = () => {
@@ -292,7 +308,7 @@ export default function WorkerIncomePage() {
         jobdesk: formData.jobdesk,
         fee: parseFloat(formData.fee),
         worker_id: null,
-        worker_name: formData.worker_name,
+        worker_name: toTitleCase(formData.worker_name),
         franchise_id: franchise.id,
         created_by: user.id,
       };
