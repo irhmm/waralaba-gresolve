@@ -50,6 +50,7 @@ interface MonthlySummary {
   expenses: number;
   omset?: number;
   profitSharing?: number;
+  labaBersih?: number;
 }
 
 interface ChartData {
@@ -59,6 +60,7 @@ interface ChartData {
   workerIncome: number;
   expenses: number;
   omset: number;
+  labaBersih: number;
 }
 
 interface ProfitSharingChartData {
@@ -376,7 +378,7 @@ const Dashboard = () => {
           monthlyData[month].expenses += Number(item.nominal);
         });
 
-        // Calculate omset using pre-fetched profit sharing data
+        // Calculate omset and laba bersih using pre-fetched profit sharing data
         for (const monthKey in monthlyData) {
           const data = monthlyData[monthKey];
           const totalRevenue = data.adminIncome + data.workerIncome;
@@ -391,6 +393,8 @@ const Dashboard = () => {
           const revenue = totalRevenue - data.expenses;
           data.omset = revenue - profitShareAmount;
           data.profitSharing = profitShareAmount;
+          // Laba Bersih = Pendapatan Admin - Pengeluaran - Bagi Hasil Owner
+          data.labaBersih = data.adminIncome - data.expenses - profitShareAmount;
         }
 
         const summaryArray = Object.values(monthlyData).sort((a, b) => b.month.localeCompare(a.month));
@@ -473,6 +477,8 @@ const Dashboard = () => {
           const totalRevenue = adminTotal + workerTotal;
           const adminPercentage = profitByMonth[monthKey] || 20; // default 20%
           const profitShareAmount = totalRevenue * (adminPercentage / 100);
+          // Laba Bersih = Pendapatan Admin - Pengeluaran - Bagi Hasil Owner
+          const labaBersihAmount = adminTotal - expensesTotal - profitShareAmount;
           
           chartData.push({
             month: monthKey,
@@ -480,7 +486,8 @@ const Dashboard = () => {
             adminIncome: adminTotal,
             workerIncome: workerTotal,
             expenses: expensesTotal,
-            omset: Math.max(0, totalRevenue - expensesTotal - profitShareAmount)
+            omset: Math.max(0, totalRevenue - expensesTotal - profitShareAmount),
+            labaBersih: labaBersihAmount
           });
         }
       }
@@ -1106,6 +1113,15 @@ const Dashboard = () => {
                     dot={{ fill: '#8b5cf6', strokeWidth: 2, r: 4 }}
                     activeDot={{ r: 6, fill: '#8b5cf6' }}
                   />
+                  <Line 
+                    type="monotone" 
+                    dataKey="labaBersih" 
+                    stroke="#14b8a6" 
+                    strokeWidth={3}
+                    name="Laba Bersih"
+                    dot={{ fill: '#14b8a6', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#14b8a6' }}
+                  />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -1169,6 +1185,7 @@ const Dashboard = () => {
                           <>
                             <TableHead className="font-semibold text-blue-900 text-right">Bagi Hasil Owner</TableHead>
                             <TableHead className="font-semibold text-blue-900 text-right">Omset</TableHead>
+                            <TableHead className="font-semibold text-teal-900 text-right">Laba Bersih</TableHead>
                           </>
                         )}
                       </TableRow>
@@ -1204,6 +1221,9 @@ const Dashboard = () => {
                               <TableCell className="text-right text-emerald-600 font-semibold">
                                 {formatCurrency(item.omset || 0)}
                               </TableCell>
+                              <TableCell className="text-right text-teal-600 font-semibold">
+                                {formatCurrency(item.labaBersih || 0)}
+                              </TableCell>
                             </>
                           )}
                         </TableRow>
@@ -1232,6 +1252,9 @@ const Dashboard = () => {
                               <TableCell></TableCell>
                               <TableCell className="text-right text-emerald-700 font-bold">
                                 {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.omset || 0), 0))}
+                              </TableCell>
+                              <TableCell className="text-right text-teal-700 font-bold">
+                                {formatCurrency(paginatedSummary.reduce((sum, item) => sum + (item.labaBersih || 0), 0))}
                               </TableCell>
                             </>
                           )}
