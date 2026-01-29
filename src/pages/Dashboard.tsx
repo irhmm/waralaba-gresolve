@@ -745,7 +745,7 @@ const Dashboard = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {userRole?.role === 'super_admin' ? (
           <>
             <Card className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
@@ -889,20 +889,43 @@ const Dashboard = () => {
             )}
 
             {userRole?.role === 'franchise' && (
-              <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-emerald-800">Bagi Hasil Owner</CardTitle>
-                  <div className="p-2 bg-emerald-500 text-white rounded-full">
-                    <Percent className="h-4 w-4" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.adminProfitShare || 0)}</div>
-                  <p className="text-xs text-emerald-600">
-                    Bagi hasil bulan ini ({stats.profitSharingPercentage || 20}% dari pendapatan)
-                  </p>
-                </CardContent>
-              </Card>
+              <>
+                <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-emerald-800">Bagi Hasil Owner</CardTitle>
+                    <div className="p-2 bg-emerald-500 text-white rounded-full">
+                      <Percent className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-emerald-900">{formatCurrency(stats.adminProfitShare || 0)}</div>
+                    <p className="text-xs text-emerald-600">
+                      Bagi hasil bulan ini ({stats.profitSharingPercentage || 20}% dari pendapatan)
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="card-hover bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium text-teal-800">Laba Bersih</CardTitle>
+                    <div className="p-2 bg-teal-500 text-white rounded-full">
+                      <BarChart3 className="h-4 w-4" />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-teal-900">
+                      {formatCurrency(
+                        (stats.thisMonthAdminIncome || 0) - 
+                        (stats.thisMonthExpenses || 0) - 
+                        (stats.adminProfitShare || 0)
+                      )}
+                    </div>
+                    <p className="text-xs text-teal-600">
+                      Pendapatan Admin - Pengeluaran - Bagi Hasil ({stats.profitSharingPercentage || 20}%)
+                    </p>
+                  </CardContent>
+                </Card>
+              </>
             )}
           </>
         )}
