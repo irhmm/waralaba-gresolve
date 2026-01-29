@@ -17,6 +17,7 @@ import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { Plus, Edit, Trash2, Search, Download, Filter, ChevronDown, Check } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
 import { exportWorkerIncomeToExcel } from '@/utils/excelUtils';
 import { cn } from '@/lib/utils';
@@ -413,33 +414,33 @@ export default function WorkerIncomePage() {
         </Card>
       )}
 
-      {/* Monthly Summary Cards */}
-      {Object.keys(groupedData).length > 0 && (
-        userRole?.role !== 'user' || 
-        searchTerm || 
-        (selectedMonth && selectedMonth !== 'all') || 
-        (selectedWorker && selectedWorker !== 'all')
-      ) && (
-        <div className="responsive-grid sm-2 lg-3">
-          {Object.entries(groupedData)
-            .sort(([a], [b]) => b.localeCompare(a))
-            .slice(0, 6)
-            .map(([month, data]) => (
-            <Card key={month} className="bg-gradient-to-r from-blue-50 to-white border-blue-200">
-              <CardContent className="p-3 sm:p-4">
+      {/* Card Total Bulan Ini */}
+      {(userRole?.role !== 'user' || searchTerm || (selectedMonth && selectedMonth !== 'all') || (selectedWorker && selectedWorker !== 'all')) && (
+        (() => {
+          const currentMonth = format(new Date(), 'yyyy-MM');
+          const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
+          const currentMonthData = groupedData[currentMonth];
+          
+          return (
+            <Card className="bg-gradient-to-r from-green-50 to-white border-green-200 max-w-md">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-blue-600">{data.label}</p>
-                    <p className="text-xl sm:text-2xl font-bold text-blue-900">
-                      Rp {data.total.toLocaleString('id-ID')}
+                    <p className="text-sm font-medium text-green-600">
+                      Total Pendapatan Worker - {currentMonthLabel}
                     </p>
-                    <p className="text-xs text-blue-500">{data.items.length} transaksi</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
+                    </p>
+                    <p className="text-xs text-green-500">
+                      {currentMonthData?.items?.length || 0} transaksi bulan ini
+                    </p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+          );
+        })()
       )}
 
       {/* Filters and Actions */}
