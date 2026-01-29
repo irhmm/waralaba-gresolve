@@ -1,106 +1,166 @@
 
 
-## Rencana: Menambahkan Card "Laba Bersih" untuk Pemilik Franchise
+## Rencana: Menyederhanakan Card Total Bulanan
 
 ### Tujuan
-Menambahkan card baru pada Dashboard untuk role `franchise` yang menampilkan **Laba Bersih** dengan perhitungan:
-
-```
-Laba Bersih = Total Pendapatan Admin - Pengeluaran - Bagi Hasil Owner
-```
-
----
-
-### Analisis Data yang Tersedia
-
-Data yang dibutuhkan sudah tersedia di state `stats`:
-
-| Data | Variable | Sumber |
-|------|----------|--------|
-| Total Pendapatan Admin (Bulan Ini) | `stats.thisMonthAdminIncome` | Query ke `admin_income` |
-| Pengeluaran (Bulan Ini) | `stats.thisMonthExpenses` | Query ke `expenses` |
-| Bagi Hasil Owner | `stats.adminProfitShare` | Calculated dari `revenue * admin_percentage` |
+Mengubah tampilan card total bulanan di halaman **Pengeluaran**, **Pendapatan Admin**, dan **Pendapatan Worker** dari menampilkan 6 card menjadi **1 card saja** yang menunjukkan **Total Bulan Ini** (otomatis berubah setiap ganti bulan).
 
 ---
 
 ### Perubahan yang Diperlukan
 
-#### **File: `src/pages/Dashboard.tsx`**
+#### **1. File: `src/pages/ExpensesPage.tsx`**
 
-**1. Tambahkan Card Laba Bersih di Section Franchise Cards (sekitar line 891-906)**
-
-Tambahkan card baru tepat setelah card "Bagi Hasil Owner" untuk role `franchise`:
-
+**Sebelum (Line 268-290):**
 ```tsx
-{userRole?.role === 'franchise' && (
-  <>
-    {/* Card Bagi Hasil Owner yang sudah ada */}
-    <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-      ...
-    </Card>
-
-    {/* NEW: Card Laba Bersih */}
-    <Card className="card-hover bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-teal-800">Laba Bersih</CardTitle>
-        <div className="p-2 bg-teal-500 text-white rounded-full">
-          <BarChart3 className="h-4 w-4" />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-teal-900">
-          {formatCurrency(
-            (stats.thisMonthAdminIncome || 0) - 
-            (stats.thisMonthExpenses || 0) - 
-            (stats.adminProfitShare || 0)
-          )}
-        </div>
-        <p className="text-xs text-teal-600">
-          Pendapatan Admin - Pengeluaran - Bagi Hasil ({stats.profitSharingPercentage || 20}%)
-        </p>
-      </CardContent>
-    </Card>
-  </>
+{Object.keys(groupedData).length > 0 && (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {Object.entries(groupedData)
+      .sort(([a], [b]) => b.localeCompare(a))
+      .slice(0, 6)
+      .map(([month, data]) => (
+      <Card key={month} ...>
+        ...
+      </Card>
+    ))}
+  </div>
 )}
 ```
 
-**2. Update Grid Layout (line 748)**
+**Sesudah:**
+```tsx
+{/* Card Total Bulan Ini */}
+{(() => {
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
+  const currentMonthData = groupedData[currentMonth];
+  
+  return (
+    <Card className="bg-gradient-to-r from-red-50 to-white border-red-200 max-w-md">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-red-600">
+              Total Pengeluaran - {currentMonthLabel}
+            </p>
+            <p className="text-2xl font-bold text-red-900">
+              Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
+            </p>
+            <p className="text-xs text-red-500">
+              {currentMonthData?.items?.length || 0} transaksi bulan ini
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+})()}
+```
 
-Ubah dari `lg:grid-cols-3` menjadi `lg:grid-cols-4` agar card baru bisa muat dengan baik untuk franchise owner yang akan memiliki 5 card:
+#### **2. File: `src/pages/AdminIncomePage.tsx`**
+
+**Sebelum (Line 306-328):**
+Menampilkan 6 card bulanan
+
+**Sesudah:**
+```tsx
+{/* Card Total Bulan Ini */}
+{(() => {
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
+  const currentMonthData = groupedData[currentMonth];
+  
+  return (
+    <Card className="bg-gradient-to-r from-blue-50 to-white border-blue-200 max-w-md">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-blue-600">
+              Total Pendapatan Admin - {currentMonthLabel}
+            </p>
+            <p className="text-2xl font-bold text-blue-900">
+              Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
+            </p>
+            <p className="text-xs text-blue-500">
+              {currentMonthData?.items?.length || 0} transaksi bulan ini
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+})()}
+```
+
+#### **3. File: `src/pages/WorkerIncomePage.tsx`**
+
+**Sebelum (Line 416-443):**
+Menampilkan 6 card bulanan dengan kondisi kompleks
+
+**Sesudah:**
+```tsx
+{/* Card Total Bulan Ini */}
+{(() => {
+  const currentMonth = format(new Date(), 'yyyy-MM');
+  const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
+  const currentMonthData = groupedData[currentMonth];
+  
+  return (
+    <Card className="bg-gradient-to-r from-green-50 to-white border-green-200 max-w-md">
+      <CardContent className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-green-600">
+              Total Pendapatan Worker - {currentMonthLabel}
+            </p>
+            <p className="text-2xl font-bold text-green-900">
+              Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
+            </p>
+            <p className="text-xs text-green-500">
+              {currentMonthData?.items?.length || 0} transaksi bulan ini
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+})()}
+```
+
+---
+
+### Import yang Diperlukan
+
+Tambahkan `id` locale dari `date-fns` di setiap file:
 
 ```tsx
-<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 ```
 
 ---
 
 ### Hasil Akhir
 
-#### Dashboard untuk Role `franchise` akan menampilkan:
+| Halaman | Sebelum | Sesudah |
+|---------|---------|---------|
+| Pengeluaran | 6 card (6 bulan terakhir) | 1 card (bulan ini) |
+| Pendapatan Admin | 6 card (6 bulan terakhir) | 1 card (bulan ini) |
+| Pendapatan Worker | 6 card (6 bulan terakhir) | 1 card (bulan ini) |
 
-| No | Card | Nilai |
-|----|------|-------|
-| 1 | Pendapatan Worker | Bulan ini + Total akumulasi |
-| 2 | Pendapatan Admin | Bulan ini + Total akumulasi |
-| 3 | Pengeluaran | Bulan ini + Total akumulasi |
-| 4 | Bagi Hasil Owner | Persentase dari pendapatan |
-| 5 | **Laba Bersih (BARU)** | Admin - Expenses - Bagi Hasil |
+### Fitur Otomatis Update
 
----
-
-### Contoh Perhitungan
-
-Jika dalam bulan ini:
-- Pendapatan Admin: Rp 10.000.000
-- Pengeluaran: Rp 2.000.000
-- Bagi Hasil Owner (20%): Rp 2.000.000
-
-Maka:
-- **Laba Bersih = 10.000.000 - 2.000.000 - 2.000.000 = Rp 6.000.000**
+Card akan **otomatis menampilkan bulan yang sedang berjalan**:
+- Januari 2026 akan menampilkan "Total Pendapatan - Januari 2026"
+- Ketika masuk Februari 2026, card akan otomatis berubah menjadi "Total Pendapatan - Februari 2026"
 
 ---
 
-### Catatan Penting
+### Warna per Halaman
 
-Card akan menggunakan warna **teal** untuk membedakannya dari card lainnya dan memberikan kesan positif untuk informasi profit/laba.
+| Halaman | Warna |
+|---------|-------|
+| Pengeluaran | Merah (red) |
+| Pendapatan Admin | Biru (blue) |
+| Pendapatan Worker | Hijau (green) |
 
