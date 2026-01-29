@@ -17,6 +17,7 @@ import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { Plus, Edit, Trash2, Search, Download, Filter, X } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { groupDataByMonth, calculateMonthlyTotals, getAvailableMonths } from '@/utils/dateUtils';
 import { exportExpensesToExcel } from '@/utils/excelUtils';
 
@@ -265,29 +266,32 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Monthly Summary Cards */}
-      {Object.keys(groupedData).length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(groupedData)
-            .sort(([a], [b]) => b.localeCompare(a))
-            .slice(0, 6)
-            .map(([month, data]) => (
-            <Card key={month} className="bg-gradient-to-r from-red-50 to-white border-red-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-red-600">{data.label}</p>
-                    <p className="text-2xl font-bold text-red-900">
-                      Rp {data.total.toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-xs text-red-500">{data.items.length} transaksi</p>
-                  </div>
+      {/* Card Total Bulan Ini */}
+      {(() => {
+        const currentMonth = format(new Date(), 'yyyy-MM');
+        const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
+        const currentMonthData = groupedData[currentMonth];
+        
+        return (
+          <Card className="bg-gradient-to-r from-red-50 to-white border-red-200 max-w-md">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-red-600">
+                    Total Pengeluaran - {currentMonthLabel}
+                  </p>
+                  <p className="text-2xl font-bold text-red-900">
+                    Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-xs text-red-500">
+                    {currentMonthData?.items?.length || 0} transaksi bulan ini
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <Card>
         <CardHeader>
