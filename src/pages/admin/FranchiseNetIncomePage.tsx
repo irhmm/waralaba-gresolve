@@ -355,9 +355,8 @@ const FranchiseNetIncomePage = () => {
               </div>
             )}
 
-            {totalPages > 1 && (
-              <div className="mt-4">
-                <DataTablePagination
+            <div className="mt-4">
+              <DataTablePagination
                   currentPage={currentPage}
                   totalPages={totalPages}
                   pageSize={pageSize}
@@ -365,8 +364,7 @@ const FranchiseNetIncomePage = () => {
                   onPageChange={setCurrentPage}
                   onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
                 />
-              </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       </div>
