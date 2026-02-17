@@ -54,6 +54,11 @@ const menuItems = {
       icon: TrendingUp,
     },
     {
+      title: 'Laba Bersih Franchise',
+      url: '/admin/franchise-net-income',
+      icon: DollarSign,
+    },
+    {
       title: 'Rekap Worker Wara',
       url: '/admin/worker-rekap',
       icon: FileText,
