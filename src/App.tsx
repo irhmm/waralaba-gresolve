@@ -16,6 +16,7 @@ import FranchiseProfitSharingPage from "./pages/admin/FranchiseProfitSharingPage
 import ProfitSharingSettingsPage from "./pages/admin/ProfitSharingSettingsPage";
 import WorkerRekapPage from "./pages/admin/WorkerRekapPage";
 import AdminRekapPage from "./pages/admin/AdminRekapPage";
+import FranchiseNetIncomePage from "./pages/admin/FranchiseNetIncomePage";
 import AdminIncomePage from "./pages/AdminIncomePage";
 import WorkerIncomePage from "./pages/WorkerIncomePage";
 import ExpensesPage from "./pages/ExpensesPage";
@@ -44,6 +45,7 @@ const App = () => (
               <Route path="admin/franchise-profit-sharing" element={<RouteGuard><FranchiseProfitSharingPage /></RouteGuard>} />
               <Route path="admin/worker-rekap" element={<RouteGuard><WorkerRekapPage /></RouteGuard>} />
               <Route path="admin/admin-rekap" element={<RouteGuard><AdminRekapPage /></RouteGuard>} />
+              <Route path="admin/franchise-net-income" element={<RouteGuard><FranchiseNetIncomePage /></RouteGuard>} />
               <Route path="admin/all-workers" element={<RouteGuard><AllWorkersPage /></RouteGuard>} />
               <Route path="admin-income" element={<RouteGuard><AdminIncomePage /></RouteGuard>} />
               <Route path="worker-income" element={<RouteGuard><WorkerIncomePage /></RouteGuard>} />
