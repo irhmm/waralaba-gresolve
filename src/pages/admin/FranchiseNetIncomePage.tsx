@@ -179,7 +179,7 @@ const FranchiseNetIncomePage = () => {
     return filteredData.slice(start, start + pageSize);
   }, [filteredData, currentPage, pageSize]);
 
-  const totalPages = Math.ceil(filteredData.length / pageSize);
+  const totalPages = Math.max(1, Math.ceil(filteredData.length / Math.max(1, pageSize)));
 
   const totalNetIncome = useMemo(() => filteredData.reduce((sum, item) => sum + item.net_income, 0), [filteredData]);
   const totalFranchises = useMemo(() => new Set(filteredData.map((i) => i.franchise_id)).size, [filteredData]);
@@ -354,19 +354,20 @@ const FranchiseNetIncomePage = () => {
                 )}
               </div>
             )}
-
-            <div className="mt-4">
-              <DataTablePagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  pageSize={pageSize}
-                  totalItems={filteredData.length}
-                  onPageChange={setCurrentPage}
-                  onPageSizeChange={(s) => { setPageSize(s); setCurrentPage(1); }}
-                />
-            </div>
           </CardContent>
         </Card>
+
+        {/* Pagination */}
+        {filteredData.length > 0 && (
+          <DataTablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={filteredData.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
       </div>
     </div>
   );
