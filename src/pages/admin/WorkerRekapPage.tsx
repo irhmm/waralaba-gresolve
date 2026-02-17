@@ -8,13 +8,12 @@ import { MonthSelector } from '@/components/ui/month-selector';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DataTablePagination } from '@/components/ui/data-table-pagination';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { RealtimeStatus } from '@/components/ui/realtime-status';
 import { Search, Download, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { groupDataByMonth, calculateMonthlyTotals } from '@/utils/dateUtils';
 import { exportWorkerRekapToExcel } from '@/utils/excelUtils';
 
 interface WorkerIncome {
@@ -38,7 +37,7 @@ export default function WorkerRekapPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('all');
-  const [cardFilterMonth, setCardFilterMonth] = useState('all');
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -113,11 +112,14 @@ export default function WorkerRekapPage() {
     return filtered;
   }, [workerIncomes, searchTerm, selectedMonth]);
 
-  // Monthly summary
-  const groupedData = useMemo(() => {
-    const grouped = groupDataByMonth(filteredData);
-    return calculateMonthlyTotals(grouped, 'fee');
-  }, [filteredData]);
+  // Single summary card based on selected month
+  const summaryData = useMemo(() => {
+    const items = selectedMonth === 'all' ? workerIncomes : workerIncomes.filter(item => {
+      return format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth;
+    });
+    const total = items.reduce((sum, item) => sum + item.fee, 0);
+    return { total, count: items.length };
+  }, [workerIncomes, selectedMonth]);
 
   // Group data by date for daily display
   const groupedByDate = useMemo(() => {
@@ -244,42 +246,18 @@ export default function WorkerRekapPage() {
         </div>
       </div>
 
-      {/* Monthly Summary Cards */}
-      {Object.keys(groupedData).length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Filter Ringkasan:</span>
-            <MonthSelector
-              value={cardFilterMonth}
-              onValueChange={setCardFilterMonth}
-              tables={['worker_income']}
-              placeholder="Semua Bulan"
-              label=""
-              showSearch={false}
-              includeAll={true}
-            />
-          </div>
-          <ScrollArea className="w-full whitespace-nowrap">
-            <div className="flex gap-3 pb-4">
-              {Object.entries(groupedData)
-                .sort(([a], [b]) => b.localeCompare(a))
-                .filter(([month]) => cardFilterMonth === 'all' || month === cardFilterMonth)
-                .map(([month, data]) => (
-                <Card key={month} className="hover:shadow-md transition-shadow flex-shrink-0 w-[200px]">
-                  <CardContent className="p-3">
-                    <p className="text-xs text-muted-foreground mb-1">{data.label}</p>
-                    <p className="text-lg font-bold text-green-600">
-                      Rp {data.total.toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{data.items.length} transaksi</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
-        </div>
-      )}
+      {/* Summary Card */}
+      <Card>
+        <CardContent className="p-4">
+          <p className="text-xs text-muted-foreground mb-1">
+            {selectedMonth === 'all' ? 'Total Semua Bulan' : format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: undefined })}
+          </p>
+          <p className="text-2xl font-bold text-green-600">
+            Rp {summaryData.total.toLocaleString('id-ID')}
+          </p>
+          <p className="text-sm text-muted-foreground">{summaryData.count} transaksi</p>
+        </CardContent>
+      </Card>
 
       {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-2 items-end">
