@@ -190,21 +190,12 @@ export default function WorkerSalaryBalancePage() {
   };
 
   const openCreateDialog = () => {
-    if (!selectedWorker) return;
-    if (sisaSaldo <= 0) {
-      toast({
-        title: 'Tidak bisa menambah pengambilan',
-        description: 'Worker ini tidak punya saldo tersisa di bulan ini.',
-        variant: 'destructive',
-      });
-      return;
-    }
     setEditing(null);
     setFormData({
       tanggal: format(new Date(), 'yyyy-MM-dd'),
       jumlah: '',
       catatan: '',
-      worker_name: selectedWorker,
+      worker_name: selectedWorker || '',
     });
     setDialogOpen(true);
   };
@@ -316,8 +307,6 @@ export default function WorkerSalaryBalancePage() {
     );
   }
 
-  const addDisabled = !selectedWorker || sisaSaldo <= 0;
-
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
@@ -360,7 +349,6 @@ export default function WorkerSalaryBalancePage() {
             />
             <Button
               onClick={openCreateDialog}
-              disabled={addDisabled}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -638,7 +626,11 @@ export default function WorkerSalaryBalancePage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button
+                type="submit"
+                disabled={!formData.worker_name || !formData.tanggal || !formData.jumlah}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
                 {editing ? 'Simpan Perubahan' : 'Tambah'}
               </Button>
             </DialogFooter>
