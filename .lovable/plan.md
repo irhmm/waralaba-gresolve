@@ -1,71 +1,79 @@
 
 
-## Rencana: Sinkronkan Card dengan Filter Aktif di Semua Halaman
+## Rencana: Tooltip Info Rumus di Dashboard (Super Admin & Franchise)
 
 ### Tujuan
-Setiap **card ringkasan/total** harus mencerminkan filter yang aktif (bulan, search, kode, worker, franchise, dll). Saat **tidak ada filter aktif** (semua bulan, search kosong), card menampilkan **total bulan ini** sebagai default — sesuai perilaku saat ini.
+Menambahkan **icon info (i)** dengan **tooltip rumus singkat** di setiap card statistik dan kolom tabel ringkasan bulanan di **Dashboard**, agar user paham asal-usul angka tanpa menutupi tampilan.
 
 ---
 
-### Logika Umum (diterapkan di semua halaman)
+### Komponen Baru
+**File**: `src/components/ui/info-tooltip.tsx`
 
-```ts
-const isFilterActive =
-  searchTerm.trim() !== '' ||
-  (selectedMonth && selectedMonth !== 'all') ||
-  /* filter lain spesifik halaman */;
+Komponen kecil reusable: `<InfoTooltip text="..." />` — render `Info` icon dari lucide (size 14, `text-muted-foreground/70`) yang dibungkus shadcn `Tooltip`. Pada mobile, otomatis pakai click-to-open via `onClick` (Radix Tooltip handles touch).
 
-const cardData = isFilterActive
-  ? filteredData                               // ikut filter
-  : filteredData.filter(item =>
-      format(new Date(item.tanggal), 'yyyy-MM') === format(new Date(), 'yyyy-MM')
-    );                                         // default: bulan ini
-
-const cardLabel = isFilterActive
-  ? (selectedMonth !== 'all'
-      ? format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: id })
-      : 'Hasil Filter')
-  : format(new Date(), 'MMMM yyyy', { locale: id });
+```tsx
+<TooltipProvider delayDuration={150}>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button type="button" className="inline-flex">
+        <Info className="h-3.5 w-3.5 opacity-70" />
+      </button>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-xs text-xs">{text}</TooltipContent>
+  </Tooltip>
+</TooltipProvider>
 ```
 
-Card menampilkan: **judul + label periode/filter**, **total nominal**, dan **jumlah transaksi** sesuai `cardData`.
+---
+
+### Lokasi Penempatan di `src/pages/Dashboard.tsx`
+
+#### A. Card Stats — Super Admin (6 card)
+Tambah `<InfoTooltip>` di samping `CardTitle`:
+
+| Card | Rumus tooltip |
+|------|---------------|
+| Total Franchise | "Jumlah franchise terdaftar di sistem" |
+| Total Pendapatan Worker | "Σ fee semua transaksi worker_income (seluruh franchise, sepanjang waktu)" |
+| Total Pendapatan Admin | "Σ nominal admin_income (seluruh franchise, sepanjang waktu)" |
+| Total Worker | "Jumlah worker terdaftar (seluruh franchise)" |
+| Total Bagi Hasil (Bulan Ini) | "Σ share_nominal franchise_profit_sharing untuk bulan berjalan" |
+| Total Pengeluaran (Bulan Ini) | "Σ nominal expenses bulan berjalan (seluruh franchise)" |
+
+#### B. Card Stats — Franchise / Admin Keuangan / Marketing
+| Card | Rumus tooltip |
+|------|---------------|
+| Pendapatan Worker | "Σ fee worker_income franchise ini bulan berjalan" |
+| Pendapatan Admin | "Σ nominal admin_income franchise ini bulan berjalan" |
+| Pengeluaran | "Σ nominal expenses franchise ini bulan berjalan" |
+| Bagi Hasil Owner | "Total Pendapatan (Admin + Worker) × % admin bagi hasil" |
+| Laba Bersih | "Pendapatan Admin − Pengeluaran − Bagi Hasil Owner" |
+| Total Worker (marketing) | "Jumlah worker aktif franchise ini" |
+
+#### C. Tabel Ringkasan Bulanan — Header Kolom
+Tambah `<InfoTooltip>` di sebelah teks kolom (inline, `ml-1`):
+
+| Kolom | Tooltip |
+|-------|---------|
+| Pendapatan Admin | "Σ admin_income.nominal pada bulan tsb" |
+| Pendapatan Worker | "Σ worker_income.fee pada bulan tsb" |
+| Pengeluaran | "Σ expenses.nominal pada bulan tsb" |
+| Total Bagi Hasil (super admin) | "Σ share_nominal seluruh franchise pada bulan tsb" |
+| Bagi Hasil Owner (franchise) | "(Pendapatan Admin + Worker) × % admin" |
+| Omset (franchise) | "(Pendapatan Admin + Worker − Pengeluaran) − Bagi Hasil" |
+| Laba Bersih (franchise) | "Pendapatan Admin − Pengeluaran − Bagi Hasil" |
 
 ---
 
-### Halaman yang Diperbaiki
+### Catatan Desain
+- Icon: `Info` lucide, `h-3.5 w-3.5`, opacity 70%, warna `currentColor` agar menyatu dengan warna title card.
+- Tooltip: max-width `xs` (320px), text-xs, posisi `top` (auto-flip Radix), delay 150ms.
+- **Tidak menambah tinggi card** — icon inline di samping judul.
+- Tooltip layer pakai z-index default Radix (di atas semua), tidak menutupi UI lain.
+- Konten singkat (1 baris rumus, sesuai jawaban user "Hanya rumus singkat").
 
-| # | Halaman | Filter yang dipertimbangkan | Catatan perubahan |
-|---|---------|------------------------------|-------------------|
-| 1 | `ExpensesPage.tsx` | search, month | Card merah ikut `filteredData` |
-| 2 | `AdminIncomePage.tsx` | search, month, code | Card biru ikut `filteredData` |
-| 3 | `WorkerIncomePage.tsx` | search, month, worker | Card hijau ikut `filteredData`; hapus kondisi role yang menyembunyikan card |
-| 4 | `admin/AdminRekapPage.tsx` | search, month | Card "Total Pendapatan" di header & card summary keduanya pakai `filteredData`; "Total Franchise" hitung dari `filteredData` |
-| 5 | `admin/WorkerRekapPage.tsx` | search, month | `summaryData` pakai `filteredData` (saat ini abaikan search) |
-| 6 | `admin/FranchiseNetIncomePage.tsx` | search, month | "Total Laba Bersih" & "Jumlah Franchise" sudah pakai `filteredData` ✓ — tambahkan label periode (mis. "Februari 2026" / "Bulan Ini") agar konsisten |
-
-**Tidak perlu diubah**: `FinancialReportPage` (sudah berbasis bulan terpilih), `ProfitSharingPage` (form, bukan card ringkasan), `Dashboard` (tidak ada filter UI), `FranchisesPage`/`WorkersPage` (tidak ada card total).
-
----
-
-### Perubahan Spesifik Singkat
-
-**ExpensesPage / AdminIncomePage / WorkerIncomePage**
-- Ganti blok IIFE card yang baca `groupedData[currentMonth]` → baca `cardData` (helper di atas).
-- Update label dari hardcoded `currentMonthLabel` → `cardLabel` dinamis.
-
-**AdminRekapPage**
-- Ubah `summaryData` agar pakai `filteredData` (sekarang langsung dari `data`, abaikan search).
-- Card "Total Pendapatan" header: nilainya `filteredData.reduce(...)` (sudah benar) — tambah sublabel periode aktif.
-- "Total Franchise" hitung unik dari `filteredData`, bukan `data`.
-
-**WorkerRekapPage**
-- `summaryData` saat ini hanya cek `selectedMonth`, abaikan `searchTerm` → ubah agar reduce dari `filteredData`.
-
-**FranchiseNetIncomePage**
-- Tambah label periode kecil di bawah angka, mis. *"Periode: Februari 2026"* atau *"Periode: Semua Bulan (filter aktif)"*.
-
----
-
-### Hasil Akhir
-Saat user mengetik di search atau memilih bulan lain, **card di atas tabel langsung memperbarui** total dan jumlah transaksi sesuai data yang difilter. Saat filter dikosongkan, card kembali menampilkan **total bulan berjalan**.
+### File yang Diubah
+1. **Buat**: `src/components/ui/info-tooltip.tsx`
+2. **Edit**: `src/pages/Dashboard.tsx` — tambah `<InfoTooltip>` di 6 card super admin, 5–6 card franchise/marketing, dan 7 header kolom tabel.
 
