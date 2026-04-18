@@ -181,8 +181,23 @@ const FranchiseNetIncomePage = () => {
 
   const totalPages = Math.ceil(filteredData.length / pageSize);
 
-  const totalNetIncome = useMemo(() => filteredData.reduce((sum, item) => sum + item.net_income, 0), [filteredData]);
-  const totalFranchises = useMemo(() => new Set(filteredData.map((i) => i.franchise_id)).size, [filteredData]);
+  // Card data: when no filter active, default to current month
+  const cardData = useMemo(() => {
+    const isFilterActive = searchTerm.trim() !== '' || selectedMonth !== 'all';
+    if (isFilterActive) return filteredData;
+    const currentMonth = format(new Date(), 'yyyy-MM');
+    return filteredData.filter(item => item.month_year === currentMonth);
+  }, [filteredData, searchTerm, selectedMonth]);
+
+  const periodLabel = useMemo(() => {
+    const isFilterActive = searchTerm.trim() !== '' || selectedMonth !== 'all';
+    if (!isFilterActive) return format(new Date(), 'MMMM yyyy', { locale: id });
+    if (selectedMonth !== 'all') return format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: id });
+    return 'Hasil Filter';
+  }, [searchTerm, selectedMonth]);
+
+  const totalNetIncome = useMemo(() => cardData.reduce((sum, item) => sum + item.net_income, 0), [cardData]);
+  const totalFranchises = useMemo(() => new Set(cardData.map((i) => i.franchise_id)).size, [cardData]);
 
   const handleExport = () => {
     const exportData = filteredData.map((item) => ({
