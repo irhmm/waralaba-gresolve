@@ -1,42 +1,55 @@
 
 
-## Rencana: Tombol "Tambah Pengambilan Gaji" Selalu Aktif
+## Rencana: Kategorisasi Sidebar
 
 ### Pemahaman
-Saat ini tombol "+ Tambah Pengambilan Gaji" disabled jika belum pilih worker. User ingin tombol selalu bisa di-klik. Worker dipilih di dalam dialog (dropdown sudah ada di form, sesuai foto).
+Sidebar saat ini flat (semua menu sejajar). User ingin grouping per kategori untuk role **franchise** & **admin_keuangan**, dan grouping serupa untuk **super_admin**.
 
-### Perubahan di `WorkerSalaryBalancePage.tsx`
+### Struktur Baru
 
-**1. Aktifkan Tombol Global**
-- Hapus kondisi `addDisabled` yang bergantung pada `selectedWorker`.
-- Tombol hanya disabled saat dialog terbuka (default behavior) — kalau tidak, selalu enabled.
-- Hapus tooltip/hint "pilih worker dulu".
+**Role: `franchise` & `admin_keuangan`**
+- **Keuangan**: Dashboard, Pengeluaran
+- **Admin**: Pendapatan Admin
+- **Worker**: Pendapatan Worker, Sisa Gaji Worker*, Data Worker
 
-**2. Dialog Buka Tanpa Pre-Selected Worker**
-- Saat tombol di-klik tanpa `selectedWorker`, dialog terbuka dengan field Worker kosong (placeholder "Pilih worker...").
-- Saat ada `selectedWorker`, auto-fill ke worker tsb (tetap bisa diganti).
-- Tanggal default = hari ini (atau tanggal 1 bulan terpilih) — tetap.
+*Catatan: "Sisa Gaji Worker" hanya ada untuk role `franchise` (sesuai memory `worker-salary-balance`). Untuk `admin_keuangan` tidak ada item ini di kategori Worker.
 
-**3. Validasi Saldo Pindah ke Submit**
-Karena worker baru ditentukan di dalam dialog:
-- Cek `getSisaForWorker(workerName) <= 0` saat **submit**, bukan saat buka dialog.
-- Jika worker yang dipilih di dialog punya sisa 0/negatif → toast error "Worker ini tidak punya saldo tersisa di bulan ini" + return (jangan close).
-- Validasi `projectedSisa < 0` (jumlah melebihi sisa) tetap.
+**Role: `super_admin`** (kategorisasi yang masuk akal sesuai menu yang ada)
+- **Keuangan**: Dashboard, Laba Bersih Franchise, Pengaturan Profit, Data Bagi Hasil Franchise
+- **Franchise**: List Franchise, Add Franchise
+- **Admin**: Rekap Admin Wara
+- **Worker**: Rekap Worker Wara, Data Worker
 
-**4. Sumber Dropdown Worker di Dialog**
-- Tetap pakai worker yang punya pendapatan di bulan terpilih.
-- Jika kosong (tidak ada worker dengan pendapatan bulan tsb) → tampilkan empty state di dropdown "Belum ada worker dengan pendapatan di bulan ini".
+**Role lain** (tetap)
+- `admin_marketing`: tidak diubah (tetap flat: Pendapatan Admin, Pendapatan Worker)
+- `user`: tetap flat (Pendapatan Worker)
 
-**5. UX Tambahan**
-- Tombol Simpan di dialog disabled jika field Worker / Jumlah / Tanggal kosong (sesuai foto: tombol biru muda saat belum lengkap).
+### Perubahan Teknis di `src/components/layout/AppSidebar.tsx`
+
+**1. Ubah Struktur Data `menuItems`**
+Dari `Record<role, Item[]>` menjadi `Record<role, Group[]>`, di mana setiap Group `{ label: string, items: Item[] }`.
+
+```ts
+type MenuGroup = { label: string; items: { title; url; icon }[] };
+const menuItems: Record<RoleKey, MenuGroup[]> = { ... }
+```
+
+**2. Render Multiple `SidebarGroup`**
+Loop tiap group → render `SidebarGroup` dengan `SidebarGroupLabel` = nama kategori (Keuangan / Admin / Worker / Franchise) + `SidebarGroupContent` berisi menu items.
+
+**3. Tetap Pertahankan**
+- Group "Keluar" (signOut) di bawah (`mt-auto`).
+- Active state via NavLink.
+- `collapsible="icon"` (mini mode tetap jalan, label group tetap muncul saat expanded).
+- Untuk role `admin_marketing` & `user` tetap pakai 1 group "Menu Utama" agar tidak over-engineered.
 
 ### File yang Diubah
 | File | Aksi |
 |---|---|
-| `src/pages/WorkerSalaryBalancePage.tsx` | Hapus disable button berbasis selectedWorker, pindah validasi saldo ke submit, dialog buka tanpa worker pre-selected |
+| `src/components/layout/AppSidebar.tsx` | Refactor `menuItems` ke struktur grouped, render multiple `SidebarGroup` per kategori |
 
-### Catatan Teknis
-- `openCreateDialog()` tidak lagi cek `sisaSaldo`. Reset form: `worker = selectedWorker || ''`, `tanggal = today`, `jumlah = ''`, `catatan = ''`.
-- `handleSubmit` tambah guard awal: jika `!form.worker_name` → toast "Pilih worker dulu" + return.
-- Bulan terpilih di dialog mengikuti `selectedMonth` filter (validasi sisa berbasis bulan tsb).
+### Catatan
+- Tidak ada perubahan routing.
+- Tidak ada perubahan behavior login/role.
+- Urutan group: Keuangan → Franchise (super admin only) → Admin → Worker.
 
