@@ -1,65 +1,59 @@
 
 
-## Rencana: Redesign Page Sisa Gaji Worker
+## Rencana: Samakan Tampilan dengan Screenshot
 
-### Tujuan
-Tampilkan **semua worker** yang punya pendapatan di bulan terpilih dalam satu tabel ringkas & elegan, dengan filter worker opsional dan rincian on-demand.
+### Pemahaman
+User ingin balik ke tampilan **single-worker focused** (sesuai screenshot), bukan tabel agregat multi-worker. Layout persis seperti foto:
+- Title: **"Rekap Gaji Worker"**
+- 1 Filter Card: Pilih Worker + Pilih Bulan + tombol hijau "+ Tambah Pengambilan Gaji"
+- 3 Summary Cards full-color (hijau muda / biru muda / hijau muda)
+- 2 Tabel side-by-side: **Rincian Pendapatan** & **Rincian Pengambilan Gaji**
 
-### Layout Baru
+### Perubahan di `WorkerSalaryBalancePage.tsx`
 
-**1. Header Page** — judul + deskripsi singkat (tetap).
+**1. Title** → ubah dari "Sisa Gaji Worker" jadi **"Rekap Gaji Worker"**, hapus subtitle.
 
-**2. Card Filter (compact, 1 baris)**
-- `MonthSelector` (Pilih Bulan, default bulan ini)
-- `Select` Pilih Worker (opsional, default "Semua Worker")
-- Tombol hijau **+ Tambah Pengambilan Gaji** (global, dialog berisi dropdown worker)
+**2. Filter Card** (samakan dengan foto)
+- Header kecil dengan ikon funnel + teks "Filter Data"
+- Grid 2 kolom (Pilih Worker, Pilih Bulan) + tombol hijau di kanan
+- Dropdown worker: placeholder "Pilih worker..." (default unselected, **bukan** "Semua Worker")
+- Sumber dropdown worker: worker yang punya pendapatan di bulan terpilih
+- Tombol "+ Tambah Pengambilan Gaji" disabled jika belum pilih worker
 
-**3. Tiga Summary Cards** (agregat sesuai filter aktif: semua worker atau 1 worker)
-- Total Pendapatan • Total Pengambilan • Sisa Saldo
-- Style minimal: border-l accent, ikon kecil, angka tebal — sama seperti sekarang tapi padding sedikit dikurangi untuk feel lebih elegan.
+**3. Summary Cards** (3 kartu solid color seperti foto)
+- Total Pendapatan: bg `bg-emerald-50`, text `text-emerald-700`, ikon TrendingUp
+- Total Pengambilan: bg `bg-blue-50`, text `text-blue-700`, ikon ClipboardList
+- Sisa Saldo: bg `bg-emerald-50`, text `text-emerald-700`, ikon Calculator
+- Hilangkan border-l accent, ganti ke full background tint
+- Hanya tampil jika worker sudah dipilih (atau tampil dengan nilai 0 sebelum pilih)
 
-**4. Tabel Utama "Sisa Gaji per Worker"** (default view)
+**4. Dua Tabel Side-by-side** (grid `md:grid-cols-2 gap-4`)
+- **Rincian Pendapatan**: Tanggal, Kode (badge), Jobdesk, Fee — read-only. Header kanan: badge kecil "X data"
+- **Rincian Pengambilan Gaji**: Tanggal, Jumlah, Catatan, Aksi (Edit/Delete icon buttons)
+- Hilangkan tombol "+ Tambah Pengambilan" yang ada di header panel detail
+- Empty state ramah jika belum pilih worker / tidak ada data
 
-| Worker | Total Pendapatan | Total Pengambilan | Sisa Saldo | Aksi |
-|---|---|---|---|---|
-| Adit | Rp 1.000.000 | Rp 500.000 | Rp 500.000 (badge hijau) | [Lihat Detail] |
-| Bila | Rp 800.000 | Rp 0 | Rp 800.000 | [Lihat Detail] |
+**5. Hapus Fitur Tabel Agregat & Expandable Row**
+- Hapus tabel "Sisa Gaji per Worker"
+- Hapus state `expandedKey`
+- Hapus tombol Tambah per row (memang tidak ada di refactor terakhir, dipastikan)
 
-- Badge warna sisa: hijau (≥0), merah (<0).
-- Sortable (default by Sisa Saldo desc).
-- Klik **Lihat Detail** → expand row inline atau buka panel detail (lihat #5).
-- Jika filter worker aktif → tabel auto-filter ke 1 worker saja.
-- Empty state ramah jika tidak ada data bulan tsb.
+**6. Validasi: Tidak Bisa Withdraw Jika Saldo = 0**
+Tambah cek di `handleSubmit` dan `openCreateDialog`:
+- Jika `getSisaForWorker(workerName) <= 0` (dan bukan editing) → toast error "Worker ini tidak punya saldo tersisa di bulan ini" + return
+- Tombol "+ Tambah Pengambilan Gaji" disable juga ketika worker terpilih tapi `sisaSaldo <= 0`
 
-**5. Detail Panel (Expandable Row)**
-Saat user klik "Lihat Detail":
-- Row expand menampilkan **2 sub-tabel side-by-side** (stack di mobile):
-  - Rincian Pendapatan (Tanggal, Kode, Jobdesk, Fee)
-  - Rincian Pengambilan Gaji (Tanggal, Jumlah, Catatan, Aksi Edit/Delete)
-- Tombol kecil **+ Tambah Pengambilan** di header panel (auto-fill worker tsb).
-- Hanya 1 row bisa expand sekaligus (clean).
-
-**6. Dialog Tambah/Edit Pengambilan Gaji**
-- Tambah field **Pilih Worker** (dropdown, sumber: worker yang punya pendapatan di bulan terpilih) — karena tombol sekarang global.
-- Field lain tetap: Tanggal, Jumlah, Catatan.
-- Validasi sisa saldo dihitung per worker yang dipilih.
-
-### Sentuhan Elegan
-- Tipografi: judul `text-2xl font-semibold tracking-tight`, sub-label `text-xs uppercase tracking-wide text-muted-foreground`.
-- Spacing konsisten `gap-4`, card `rounded-xl` ringan.
-- Hover row halus, transition smooth.
-- Icon kecil di header tabel (Wallet, TrendingUp).
-- Hilangkan border tebal yang berlebihan.
+**7. Dialog Tambah/Edit**
+- Dropdown worker tetap (auto-fill ke worker yang sedang dipilih, masih bisa diganti dari list)
+- Validasi sisa tetap; tambahan: blok jika sisa untuk worker terpilih = 0
 
 ### File yang Diubah
 | File | Aksi |
 |---|---|
-| `src/pages/WorkerSalaryBalancePage.tsx` | Refactor besar: hapus pembagian wajib pilih worker, tambah agregasi per worker, expandable row, update dialog dengan dropdown worker |
+| `src/pages/WorkerSalaryBalancePage.tsx` | Refactor besar: balik ke single-worker view sesuai screenshot, hapus tabel agregat & expandable row, samakan styling summary cards, tambah blok withdraw saat saldo 0 |
 
 ### Catatan Teknis
-- Agregasi per worker pakai `useMemo`: group `incomes` by normalized `worker_name` di bulan terpilih, hitung total fee. Lalu join dengan agregasi `withdrawals` (group sama).
-- Worker list = union dari worker yang punya pendapatan ATAU pengambilan di bulan tsb (supaya kalau ada pengambilan tanpa pendapatan tetap muncul, sisa = negatif).
-- Expand state: `const [expandedWorker, setExpandedWorker] = useState<string | null>(null)`.
-- Dropdown worker di dialog: sumber sama dengan filter (worker yang punya pendapatan bulan tsb).
-- Realtime, RLS, validasi sisa saldo, normalisasi Title Case — tetap.
+- Worker dropdown source = `useMemo` dari worker yang punya pendapatan di bulan terpilih (exact match per nama ter-normalize).
+- Reset `selectedWorker` ke `''` saat ganti bulan jika worker tidak ada di bulan baru.
+- Realtime, RLS, normalisasi Title Case — tetap.
 
