@@ -27,6 +27,7 @@ import {
   Clock
 } from 'lucide-react';
 import { id } from 'date-fns/locale';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
 
 interface DashboardStats {
   totalFranchises?: number;
