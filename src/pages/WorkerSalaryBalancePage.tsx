@@ -485,7 +485,7 @@ export default function WorkerSalaryBalancePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    detailIncomes.map(i => (
+                    paginatedIncomes.map(i => (
                       <TableRow key={i.id}>
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(i.tanggal), 'dd MMM yyyy', { locale: localeId })}
