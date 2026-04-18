@@ -1217,13 +1217,22 @@ const Dashboard = () => {
                           {userRole?.role !== 'super_admin' && (
                             <>
                               <TableCell className="text-right text-orange-600 font-medium">
-                                {formatCurrency(item.profitSharing || 0)}
+                                <div>{formatCurrency(item.profitSharing || 0)}</div>
+                                <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                                  ({formatCurrency(item.adminIncome + item.workerIncome)} × %admin)
+                                </div>
                               </TableCell>
                               <TableCell className="text-right text-emerald-600 font-semibold">
-                                {formatCurrency(item.omset || 0)}
+                                <div>{formatCurrency(item.omset || 0)}</div>
+                                <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                                  ({formatCurrency(item.adminIncome + item.workerIncome)} − {formatCurrency(item.expenses)}) − {formatCurrency(item.profitSharing || 0)}
+                                </div>
                               </TableCell>
                               <TableCell className="text-right text-teal-600 font-semibold">
-                                {formatCurrency(item.labaBersih || 0)}
+                                <div>{formatCurrency(item.labaBersih || 0)}</div>
+                                <div className="text-[10px] text-muted-foreground font-normal mt-0.5">
+                                  {formatCurrency(item.adminIncome)} − {formatCurrency(item.expenses)} − {formatCurrency(item.profitSharing || 0)}
+                                </div>
                               </TableCell>
                             </>
                           )}
