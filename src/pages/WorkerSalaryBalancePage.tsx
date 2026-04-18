@@ -454,6 +454,7 @@ export default function WorkerSalaryBalancePage() {
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="h-9">Tanggal</TableHead>
+                    {!selectedWorker && <TableHead className="h-9">Worker</TableHead>}
                     <TableHead className="h-9">Kode</TableHead>
                     <TableHead className="h-9">Jobdesk</TableHead>
                     <TableHead className="h-9 text-right">Fee</TableHead>
