@@ -2,37 +2,83 @@
 
 ## Masalah
 
-Saat user mencari/select worker bernama "Bila", nama "Nabila" ikut muncul dan terhitung karena filter saat ini pakai `.includes()` (substring match) — bukan exact match.
-
-## Investigasi yang Diperlukan
-
-Cek halaman yang punya filter/search worker name:
-- `WorkerIncomePage.tsx` — search & worker filter
-- `admin/WorkerRekapPage.tsx` — search & worker filter
-- `admin/AllWorkersPage.tsx` — search global
+Dropdown filter "Worker" (di `WorkerIncomePage`) dan "Code" (di `AdminIncomePage`) saat ini menampilkan **semua** nama/kode dari seluruh data — tidak peduli bulan yang dipilih. Akibatnya, user melihat nama worker / kode admin yang **tidak punya transaksi** di bulan terpilih, padahal hasilnya akan kosong saat dipilih.
 
 ## Perbaikan
 
-**Aturan**:
-- **Search bar (text input)**: tetap pakai `includes()` — wajar untuk pencarian bebas (contoh: ketik "bil" muncul "Bila" & "Nabila"). Ini behavior search yang benar.
-- **Worker name filter (combobox/select)**: ubah jadi **exact match** (`===`) — saat user pilih "Bila" dari dropdown, hanya transaksi worker bernama "Bila" yang tampil & terhitung di card.
+Filter daftar opsi dropdown agar **hanya menampilkan nama worker / kode admin yang punya pendapatan** di bulan yang sedang dipilih. Jika `selectedMonth === 'all'`, tampilkan semua (perilaku saat ini).
 
-**Normalisasi**: bandingkan setelah `.trim().toLowerCase()` agar konsisten dengan `toTitleCase` (kasus "Bila" vs "bila " tetap match).
+### File 1: `src/pages/WorkerIncomePage.tsx`
 
-### File yang Diubah
+Ubah `uniqueWorkerNames` (line 254–270) agar bersumber dari data yang sudah difilter berdasarkan bulan saja (bukan worker, bukan search — supaya user tetap bisa ganti pilihan worker tanpa list mengecil saat memilih satu worker):
 
-1. **`src/pages/WorkerIncomePage.tsx`**
-   - Pada `filteredData`: ubah filter worker selection dari `includes` → exact match (`item.worker_name?.trim().toLowerCase() === selectedWorker.trim().toLowerCase()`).
-   - Pastikan dropdown options unik berdasarkan nama exact (sudah Title Case).
+```ts
+const uniqueWorkerNames = useMemo(() => {
+  const namesMap = new Map<string, string>();
+  
+  // Hanya pertimbangkan transaksi pada bulan yang dipilih
+  const sourceData = (selectedMonth && selectedMonth !== 'all')
+    ? workerIncomes.filter(item => 
+        format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth
+      )
+    : workerIncomes;
+  
+  sourceData
+    .filter(item => item.worker_name)
+    .forEach(item => {
+      const normalizedName = item.worker_name.toLowerCase().trim();
+      if (!namesMap.has(normalizedName)) {
+        namesMap.set(normalizedName, item.worker_name.trim());
+      }
+    });
+  
+  return Array.from(namesMap.values()).sort((a, b) => 
+    a.toLowerCase().localeCompare(b.toLowerCase())
+  );
+}, [workerIncomes, selectedMonth]);
+```
 
-2. **`src/pages/admin/WorkerRekapPage.tsx`**
-   - Sama: filter worker selection pakai exact match.
+**Bonus**: jika `selectedWorker` yang sedang aktif tidak ada dalam list baru (karena ganti bulan), reset `selectedWorker` ke `'all'` agar tidak ada filter "hantu":
 
-3. **`src/pages/admin/AllWorkersPage.tsx`**
-   - Search bar tetap `includes` (search bebas) — **tidak diubah**.
-   - Tapi tambahkan opsi: jika nantinya ada worker filter dropdown, pakai exact.
+```ts
+useEffect(() => {
+  if (selectedWorker !== 'all' && !uniqueWorkerNames.some(
+    n => n.toLowerCase().trim() === selectedWorker.toLowerCase().trim()
+  )) {
+    setSelectedWorker('all');
+  }
+}, [uniqueWorkerNames, selectedWorker]);
+```
 
-### Hasil
-- Pilih "Bila" di dropdown → hanya "Bila" yang tampil & terhitung di card total.
-- Ketik "bil" di search box → tetap menampilkan "Bila" & "Nabila" (search behavior normal).
+### File 2: `src/pages/AdminIncomePage.tsx`
+
+Ubah `availableCodes` (line 290–293) agar bersumber dari data yang difilter bulan:
+
+```ts
+const availableCodes = useMemo(() => {
+  const sourceData = (selectedMonth && selectedMonth !== 'all')
+    ? adminIncomes.filter(item => 
+        format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth
+      )
+    : adminIncomes;
+  
+  const codes = sourceData.map(item => item.code);
+  return [...new Set(codes)].sort();
+}, [adminIncomes, selectedMonth]);
+```
+
+Tambah auto-reset `codeFilter` jika kode terpilih tidak ada di list baru:
+
+```ts
+useEffect(() => {
+  if (codeFilter !== 'all' && !availableCodes.includes(codeFilter)) {
+    setCodeFilter('all');
+  }
+}, [availableCodes, codeFilter]);
+```
+
+## Hasil
+- Pilih bulan **Januari** → dropdown worker/code hanya menampilkan worker/kode yang **punya transaksi di Januari**.
+- Pilih **Semua Bulan** → dropdown menampilkan semua nama (perilaku lama).
+- Jika pilihan worker/code aktif lalu user ganti bulan dan worker/code itu tidak ada di bulan baru → filter otomatis reset ke "Semua".
 
