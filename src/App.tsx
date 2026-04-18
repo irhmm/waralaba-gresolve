@@ -19,6 +19,7 @@ import AdminRekapPage from "./pages/admin/AdminRekapPage";
 import FranchiseNetIncomePage from "./pages/admin/FranchiseNetIncomePage";
 import AdminIncomePage from "./pages/AdminIncomePage";
 import WorkerIncomePage from "./pages/WorkerIncomePage";
+import WorkerSalaryBalancePage from "./pages/WorkerSalaryBalancePage";
 import ExpensesPage from "./pages/ExpensesPage";
 import WorkersPage from "./pages/WorkersPage";
 import AllWorkersPage from "./pages/admin/AllWorkersPage";
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="admin/all-workers" element={<RouteGuard><AllWorkersPage /></RouteGuard>} />
               <Route path="admin-income" element={<RouteGuard><AdminIncomePage /></RouteGuard>} />
               <Route path="worker-income" element={<RouteGuard><WorkerIncomePage /></RouteGuard>} />
+              <Route path="worker-salary-balance" element={<RouteGuard><WorkerSalaryBalancePage /></RouteGuard>} />
               <Route path="expenses" element={<RouteGuard><ExpensesPage /></RouteGuard>} />
               <Route path="workers" element={<RouteGuard><WorkersPage /></RouteGuard>} />
             </Route>
