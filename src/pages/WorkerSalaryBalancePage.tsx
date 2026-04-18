@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { Plus, Edit, Trash2, TrendingUp, ClipboardList, Calculator, Filter } from 'lucide-react';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { z } from 'zod';
@@ -83,6 +84,12 @@ export default function WorkerSalaryBalancePage() {
   });
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  // Pagination
+  const [incomePage, setIncomePage] = useState(1);
+  const [incomePageSize, setIncomePageSize] = useState(10);
+  const [withdrawalPage, setWithdrawalPage] = useState(1);
+  const [withdrawalPageSize, setWithdrawalPageSize] = useState(10);
 
   useRealtimeData({
     table: 'worker_income',
@@ -177,6 +184,22 @@ export default function WorkerSalaryBalancePage() {
   const totalPendapatan = useMemo(() => detailIncomes.reduce((s, i) => s + Number(i.fee || 0), 0), [detailIncomes]);
   const totalPengambilan = useMemo(() => detailWithdrawals.reduce((s, w) => s + Number(w.jumlah || 0), 0), [detailWithdrawals]);
   const sisaSaldo = totalPendapatan - totalPengambilan;
+
+  // Reset pagination when filters change
+  useEffect(() => { setIncomePage(1); }, [selectedWorker, selectedMonth, incomePageSize]);
+  useEffect(() => { setWithdrawalPage(1); }, [selectedWorker, selectedMonth, withdrawalPageSize]);
+
+  const incomeTotalPages = Math.max(1, Math.ceil(detailIncomes.length / incomePageSize));
+  const withdrawalTotalPages = Math.max(1, Math.ceil(detailWithdrawals.length / withdrawalPageSize));
+
+  const paginatedIncomes = useMemo(
+    () => detailIncomes.slice((incomePage - 1) * incomePageSize, incomePage * incomePageSize),
+    [detailIncomes, incomePage, incomePageSize]
+  );
+  const paginatedWithdrawals = useMemo(
+    () => detailWithdrawals.slice((withdrawalPage - 1) * withdrawalPageSize, withdrawalPage * withdrawalPageSize),
+    [detailWithdrawals, withdrawalPage, withdrawalPageSize]
+  );
 
   const getSisaForWorker = (workerName: string) => {
     const key = normalizeKey(workerName);
@@ -462,7 +485,7 @@ export default function WorkerSalaryBalancePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    detailIncomes.map(i => (
+                    paginatedIncomes.map(i => (
                       <TableRow key={i.id}>
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(i.tanggal), 'dd MMM yyyy', { locale: localeId })}
@@ -485,6 +508,16 @@ export default function WorkerSalaryBalancePage() {
                 </TableBody>
               </Table>
             </div>
+            {detailIncomes.length > 0 && (
+              <DataTablePagination
+                currentPage={incomePage}
+                totalPages={incomeTotalPages}
+                pageSize={incomePageSize}
+                totalItems={detailIncomes.length}
+                onPageChange={setIncomePage}
+                onPageSizeChange={setIncomePageSize}
+              />
+            )}
           </CardContent>
         </Card>
 
@@ -525,7 +558,7 @@ export default function WorkerSalaryBalancePage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    detailWithdrawals.map(w => (
+                    paginatedWithdrawals.map(w => (
                       <TableRow key={w.id}>
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(w.tanggal), 'dd MMM yyyy', { locale: localeId })}
@@ -555,6 +588,16 @@ export default function WorkerSalaryBalancePage() {
                 </TableBody>
               </Table>
             </div>
+            {detailWithdrawals.length > 0 && (
+              <DataTablePagination
+                currentPage={withdrawalPage}
+                totalPages={withdrawalTotalPages}
+                pageSize={withdrawalPageSize}
+                totalItems={detailWithdrawals.length}
+                onPageChange={setWithdrawalPage}
+                onPageSizeChange={setWithdrawalPageSize}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
