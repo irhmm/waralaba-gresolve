@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
-import { Plus, Edit, Trash2, Wallet, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
+import { Plus, Edit, Trash2, TrendingUp, ClipboardList, Calculator, Filter } from 'lucide-react';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { z } from 'zod';
@@ -42,14 +42,6 @@ interface Withdrawal {
   tanggal: string;
   franchise_id: string;
   created_by: string;
-}
-
-interface WorkerRow {
-  key: string;
-  name: string;
-  pendapatan: number;
-  pengambilan: number;
-  sisa: number;
 }
 
 const formatCurrency = (n: number) =>
@@ -79,10 +71,8 @@ export default function WorkerSalaryBalancePage() {
   const [loading, setLoading] = useState(true);
 
   const [selectedMonth, setSelectedMonth] = useState<string>(format(new Date(), 'yyyy-MM'));
-  const [selectedWorker, setSelectedWorker] = useState<string>('all');
-  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const [selectedWorker, setSelectedWorker] = useState<string>('');
 
-  // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Withdrawal | null>(null);
   const [formData, setFormData] = useState({
@@ -92,10 +82,8 @@ export default function WorkerSalaryBalancePage() {
     worker_name: '',
   });
 
-  // Delete confirmation
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Realtime
   useRealtimeData({
     table: 'worker_income',
     franchiseId,
@@ -152,66 +140,67 @@ export default function WorkerSalaryBalancePage() {
     [withdrawals, selectedMonth]
   );
 
-  // Aggregated rows per worker (union of incomes & withdrawals)
-  const workerRows = useMemo<WorkerRow[]>(() => {
-    const map = new Map<string, WorkerRow>();
+  // Worker options = workers with income in selected month
+  const workerOptions = useMemo(() => {
+    const set = new Map<string, string>();
     monthIncomes.forEach(i => {
       if (!i.worker_name) return;
       const key = normalizeKey(i.worker_name);
-      const r = map.get(key) || { key, name: toTitleCase(i.worker_name), pendapatan: 0, pengambilan: 0, sisa: 0 };
-      r.pendapatan += Number(i.fee || 0);
-      map.set(key, r);
+      if (!set.has(key)) set.set(key, toTitleCase(i.worker_name));
     });
-    monthWithdrawals.forEach(w => {
-      const key = normalizeKey(w.worker_name);
-      const r = map.get(key) || { key, name: toTitleCase(w.worker_name), pendapatan: 0, pengambilan: 0, sisa: 0 };
-      r.pengambilan += Number(w.jumlah || 0);
-      map.set(key, r);
-    });
-    const rows = Array.from(map.values()).map(r => ({ ...r, sisa: r.pendapatan - r.pengambilan }));
-    return rows.sort((a, b) => b.sisa - a.sisa || a.name.localeCompare(b.name));
-  }, [monthIncomes, monthWithdrawals]);
+    return Array.from(set.values()).sort((a, b) => a.localeCompare(b));
+  }, [monthIncomes]);
 
-  // Worker filter options
-  const workerOptions = useMemo(() => workerRows.map(r => r.name), [workerRows]);
-
-  // Auto-reset filter if worker no longer in list
+  // Reset selected worker if not in current month list
   useEffect(() => {
-    if (selectedWorker !== 'all' && !workerOptions.some(w => normalizeKey(w) === normalizeKey(selectedWorker))) {
-      setSelectedWorker('all');
+    if (selectedWorker && !workerOptions.some(w => normalizeKey(w) === normalizeKey(selectedWorker))) {
+      setSelectedWorker('');
     }
   }, [workerOptions, selectedWorker]);
 
-  // Visible rows after filter
-  const visibleRows = useMemo(() => {
-    if (selectedWorker === 'all') return workerRows;
-    return workerRows.filter(r => normalizeKey(r.name) === normalizeKey(selectedWorker));
-  }, [workerRows, selectedWorker]);
+  // Filtered detail data for the selected worker
+  const workerKey = selectedWorker ? normalizeKey(selectedWorker) : null;
 
-  // Aggregate for summary cards (matches visible rows)
-  const totalPendapatan = useMemo(() => visibleRows.reduce((s, r) => s + r.pendapatan, 0), [visibleRows]);
-  const totalPengambilan = useMemo(() => visibleRows.reduce((s, r) => s + r.pengambilan, 0), [visibleRows]);
+  const detailIncomes = useMemo(
+    () => workerKey ? monthIncomes.filter(i => i.worker_name && normalizeKey(i.worker_name) === workerKey) : [],
+    [monthIncomes, workerKey]
+  );
+  const detailWithdrawals = useMemo(
+    () => workerKey ? monthWithdrawals.filter(w => normalizeKey(w.worker_name) === workerKey) : [],
+    [monthWithdrawals, workerKey]
+  );
+
+  const totalPendapatan = useMemo(() => detailIncomes.reduce((s, i) => s + Number(i.fee || 0), 0), [detailIncomes]);
+  const totalPengambilan = useMemo(() => detailWithdrawals.reduce((s, w) => s + Number(w.jumlah || 0), 0), [detailWithdrawals]);
   const sisaSaldo = totalPendapatan - totalPengambilan;
 
-  // Detail data for expanded row
-  const getIncomesForWorker = (key: string) =>
-    monthIncomes.filter(i => i.worker_name && normalizeKey(i.worker_name) === key);
-  const getWithdrawalsForWorker = (key: string) =>
-    monthWithdrawals.filter(w => normalizeKey(w.worker_name) === key);
-
-  // Sisa saldo for a specific worker (used by dialog validation)
   const getSisaForWorker = (workerName: string) => {
-    const row = workerRows.find(r => normalizeKey(r.name) === normalizeKey(workerName));
-    return row ? row.sisa : 0;
+    const key = normalizeKey(workerName);
+    const pendapatan = monthIncomes
+      .filter(i => i.worker_name && normalizeKey(i.worker_name) === key)
+      .reduce((s, i) => s + Number(i.fee || 0), 0);
+    const pengambilan = monthWithdrawals
+      .filter(w => normalizeKey(w.worker_name) === key)
+      .reduce((s, w) => s + Number(w.jumlah || 0), 0);
+    return pendapatan - pengambilan;
   };
 
-  const openCreateDialog = (presetWorker?: string) => {
+  const openCreateDialog = () => {
+    if (!selectedWorker) return;
+    if (sisaSaldo <= 0) {
+      toast({
+        title: 'Tidak bisa menambah pengambilan',
+        description: 'Worker ini tidak punya saldo tersisa di bulan ini.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setEditing(null);
     setFormData({
       tanggal: format(new Date(), 'yyyy-MM-dd'),
       jumlah: '',
       catatan: '',
-      worker_name: presetWorker || (selectedWorker !== 'all' ? selectedWorker : ''),
+      worker_name: selectedWorker,
     });
     setDialogOpen(true);
   };
@@ -243,8 +232,17 @@ export default function WorkerSalaryBalancePage() {
     const jumlahNum = parsed.data.jumlah;
     const workerName = parsed.data.worker_name;
     const sisaForWorker = getSisaForWorker(workerName);
-
     const previousAmount = editing ? Number(editing.jumlah) : 0;
+
+    if (!editing && sisaForWorker <= 0) {
+      toast({
+        title: 'Tidak bisa menambah pengambilan',
+        description: 'Worker ini tidak punya saldo tersisa di bulan ini.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const projectedSisa = sisaForWorker + previousAmount - jumlahNum;
     if (projectedSisa < 0) {
       toast({
@@ -302,13 +300,6 @@ export default function WorkerSalaryBalancePage() {
     }
   };
 
-  // Dialog worker options: union of month workers + (if editing) the worker being edited
-  const dialogWorkerOptions = useMemo(() => {
-    const set = new Set(workerOptions.map(w => toTitleCase(w)));
-    if (editing) set.add(toTitleCase(editing.worker_name));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [workerOptions, editing]);
-
   if (!isFranchise) {
     return (
       <div className="p-6">
@@ -321,47 +312,55 @@ export default function WorkerSalaryBalancePage() {
     );
   }
 
+  const addDisabled = !selectedWorker || sisaSaldo <= 0;
+
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Sisa Gaji Worker</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          Pantau sisa saldo gaji setiap worker per bulan.
-        </p>
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">Rekap Gaji Worker</h1>
       </div>
 
       {/* Filter Bar */}
       <Card className="rounded-xl border-border/60 shadow-sm">
-        <CardContent className="p-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+            <Filter className="h-4 w-4" />
+            Filter Data
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Pilih Worker</Label>
+              <Select value={selectedWorker} onValueChange={setSelectedWorker}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih worker..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {workerOptions.length === 0 ? (
+                    <div className="px-2 py-1.5 text-sm text-muted-foreground">Tidak ada worker bulan ini</div>
+                  ) : (
+                    workerOptions.map(w => (
+                      <SelectItem key={w} value={w}>{w}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
             <MonthSelector
               value={selectedMonth}
               onValueChange={setSelectedMonth}
               tables={['worker_income']}
-              label="Bulan"
+              label="Pilih Bulan"
             />
-            <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-muted-foreground">Worker</Label>
-              <Select value={selectedWorker} onValueChange={setSelectedWorker}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Semua Worker" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Worker</SelectItem>
-                  {workerOptions.map(w => (
-                    <SelectItem key={w} value={w}>{w}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <Button
-              onClick={() => openCreateDialog()}
-              disabled={dialogWorkerOptions.length === 0}
+              onClick={openCreateDialog}
+              disabled={addDisabled}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Tambah Pengambilan
+              Tambah Pengambilan Gaji
             </Button>
           </div>
         </CardContent>
@@ -369,237 +368,204 @@ export default function WorkerSalaryBalancePage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="rounded-xl border-l-4 border-l-emerald-500 shadow-sm">
+        <Card className="rounded-xl border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/60 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Pendapatan</p>
-                <p className="text-2xl font-bold text-emerald-600 mt-1">{formatCurrency(totalPendapatan)}</p>
+                <p className="text-xs uppercase tracking-wide text-emerald-700/70 dark:text-emerald-400/70 font-medium">
+                  Total Pendapatan
+                </p>
+                <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                  {formatCurrency(totalPendapatan)}
+                </p>
               </div>
-              <TrendingUp className="h-7 w-7 text-emerald-500/40" />
+              <TrendingUp className="h-8 w-8 text-emerald-600/60 dark:text-emerald-500/60" />
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-l-4 border-l-blue-500 shadow-sm">
+        <Card className="rounded-xl border-blue-200/60 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-900/60 shadow-sm">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Pengambilan</p>
-                <p className="text-2xl font-bold text-blue-600 mt-1">{formatCurrency(totalPengambilan)}</p>
+                <p className="text-xs uppercase tracking-wide text-blue-700/70 dark:text-blue-400/70 font-medium">
+                  Total Pengambilan
+                </p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1">
+                  {formatCurrency(totalPengambilan)}
+                </p>
               </div>
-              <TrendingDown className="h-7 w-7 text-blue-500/40" />
+              <ClipboardList className="h-8 w-8 text-blue-600/60 dark:text-blue-500/60" />
             </div>
           </CardContent>
         </Card>
-        <Card className={cn('rounded-xl border-l-4 shadow-sm', sisaSaldo >= 0 ? 'border-l-emerald-500' : 'border-l-destructive')}>
+        <Card
+          className={cn(
+            'rounded-xl shadow-sm',
+            sisaSaldo >= 0
+              ? 'border-emerald-200/60 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-900/60'
+              : 'border-destructive/30 bg-destructive/5'
+          )}
+        >
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Sisa Saldo</p>
-                <p className={cn('text-2xl font-bold mt-1', sisaSaldo >= 0 ? 'text-emerald-600' : 'text-destructive')}>
+                <p className={cn(
+                  'text-xs uppercase tracking-wide font-medium',
+                  sisaSaldo >= 0 ? 'text-emerald-700/70 dark:text-emerald-400/70' : 'text-destructive/80'
+                )}>
+                  Sisa Saldo
+                </p>
+                <p className={cn(
+                  'text-2xl font-bold mt-1',
+                  sisaSaldo >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-destructive'
+                )}>
                   {formatCurrency(sisaSaldo)}
                 </p>
               </div>
-              <Wallet className={cn('h-7 w-7', sisaSaldo >= 0 ? 'text-emerald-500/40' : 'text-destructive/40')} />
+              <Calculator className={cn(
+                'h-8 w-8',
+                sisaSaldo >= 0 ? 'text-emerald-600/60 dark:text-emerald-500/60' : 'text-destructive/60'
+              )} />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Table */}
-      <Card className="rounded-xl border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-            Sisa Gaji per Worker
-            <span className="text-xs font-normal text-muted-foreground ml-1">
-              · {format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: localeId })}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/30 hover:bg-muted/30">
-                  <TableHead className="w-10"></TableHead>
-                  <TableHead>Worker</TableHead>
-                  <TableHead className="text-right">Total Pendapatan</TableHead>
-                  <TableHead className="text-right">Total Pengambilan</TableHead>
-                  <TableHead className="text-right">Sisa Saldo</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      Memuat data...
-                    </TableCell>
+      {/* Side-by-side detail tables */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Rincian Pendapatan */}
+        <Card className="rounded-xl border-border/60 shadow-sm">
+          <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-600" />
+              Rincian Pendapatan
+            </CardTitle>
+            <Badge variant="secondary" className="text-xs font-normal">
+              {detailIncomes.length} data
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="h-9">Tanggal</TableHead>
+                    <TableHead className="h-9">Kode</TableHead>
+                    <TableHead className="h-9">Jobdesk</TableHead>
+                    <TableHead className="h-9 text-right">Fee</TableHead>
                   </TableRow>
-                ) : visibleRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-10">
-                      Tidak ada data worker di bulan ini.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  visibleRows.map(row => {
-                    const isExpanded = expandedKey === row.key;
-                    const detailIncomes = isExpanded ? getIncomesForWorker(row.key) : [];
-                    const detailWithdrawals = isExpanded ? getWithdrawalsForWorker(row.key) : [];
-                    return (
-                      <React.Fragment key={row.key}>
-                        <TableRow
-                          className="cursor-pointer transition-colors"
-                          onClick={() => setExpandedKey(isExpanded ? null : row.key)}
-                        >
-                          <TableCell className="w-10">
-                            {isExpanded
-                              ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                          </TableCell>
-                          <TableCell className="font-medium">{row.name}</TableCell>
-                          <TableCell className="text-right text-emerald-600 font-medium">
-                            {formatCurrency(row.pendapatan)}
-                          </TableCell>
-                          <TableCell className="text-right text-blue-600 font-medium">
-                            {formatCurrency(row.pengambilan)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                'font-semibold border-0',
-                                row.sisa >= 0
-                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400'
-                                  : 'bg-destructive/10 text-destructive'
-                              )}
-                            >
-                              {formatCurrency(row.sisa)}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                        {isExpanded && (
-                          <TableRow className="bg-muted/20 hover:bg-muted/20">
-                            <TableCell colSpan={5} className="p-4">
-                              <div className="flex justify-end mb-3">
-                                <Button
-                                  size="sm"
-                                  onClick={() => openCreateDialog(row.name)}
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-                                >
-                                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                                  Tambah untuk {row.name}
-                                </Button>
-                              </div>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                {/* Income detail */}
-                                <div className="rounded-lg border border-border/60 bg-background overflow-hidden">
-                                  <div className="px-3 py-2 border-b border-border/60 bg-muted/30">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                      Rincian Pendapatan
-                                    </p>
-                                  </div>
-                                  <div className="overflow-x-auto max-h-64">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead className="h-9">Tanggal</TableHead>
-                                          <TableHead className="h-9">Kode</TableHead>
-                                          <TableHead className="h-9">Jobdesk</TableHead>
-                                          <TableHead className="h-9 text-right">Fee</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {detailIncomes.length === 0 ? (
-                                          <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-muted-foreground py-4 text-sm">
-                                              Tidak ada pendapatan
-                                            </TableCell>
-                                          </TableRow>
-                                        ) : (
-                                          detailIncomes.map(i => (
-                                            <TableRow key={i.id}>
-                                              <TableCell className="whitespace-nowrap py-2 text-sm">
-                                                {format(new Date(i.tanggal), 'dd MMM', { locale: localeId })}
-                                              </TableCell>
-                                              <TableCell className="py-2">
-                                                {i.code ? <Badge variant="secondary" className="text-xs">{i.code}</Badge> : <span className="text-muted-foreground">-</span>}
-                                              </TableCell>
-                                              <TableCell className="py-2 max-w-[160px] truncate text-sm">{i.jobdesk || '-'}</TableCell>
-                                              <TableCell className="py-2 text-right font-medium text-sm">{formatCurrency(Number(i.fee))}</TableCell>
-                                            </TableRow>
-                                          ))
-                                        )}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                </div>
+                </TableHeader>
+                <TableBody>
+                  {!selectedWorker ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                        Pilih worker untuk melihat rincian pendapatan.
+                      </TableCell>
+                    </TableRow>
+                  ) : loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                        Memuat data...
+                      </TableCell>
+                    </TableRow>
+                  ) : detailIncomes.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                        Tidak ada pendapatan di bulan ini.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    detailIncomes.map(i => (
+                      <TableRow key={i.id}>
+                        <TableCell className="whitespace-nowrap py-2 text-sm">
+                          {format(new Date(i.tanggal), 'dd MMM yyyy', { locale: localeId })}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          {i.code ? <Badge variant="secondary" className="text-xs font-mono">{i.code}</Badge> : <span className="text-muted-foreground">-</span>}
+                        </TableCell>
+                        <TableCell className="py-2 max-w-[180px] truncate text-sm">{i.jobdesk || '-'}</TableCell>
+                        <TableCell className="py-2 text-right font-medium text-sm text-emerald-700 dark:text-emerald-400">
+                          {formatCurrency(Number(i.fee))}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
-                                {/* Withdrawal detail */}
-                                <div className="rounded-lg border border-border/60 bg-background overflow-hidden">
-                                  <div className="px-3 py-2 border-b border-border/60 bg-muted/30">
-                                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                      Rincian Pengambilan
-                                    </p>
-                                  </div>
-                                  <div className="overflow-x-auto max-h-64">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow>
-                                          <TableHead className="h-9">Tanggal</TableHead>
-                                          <TableHead className="h-9 text-right">Jumlah</TableHead>
-                                          <TableHead className="h-9">Catatan</TableHead>
-                                          <TableHead className="h-9 text-right">Aksi</TableHead>
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {detailWithdrawals.length === 0 ? (
-                                          <TableRow>
-                                            <TableCell colSpan={4} className="text-center text-muted-foreground py-4 text-sm">
-                                              Belum ada pengambilan
-                                            </TableCell>
-                                          </TableRow>
-                                        ) : (
-                                          detailWithdrawals.map(w => (
-                                            <TableRow key={w.id}>
-                                              <TableCell className="whitespace-nowrap py-2 text-sm">
-                                                {format(new Date(w.tanggal), 'dd MMM', { locale: localeId })}
-                                              </TableCell>
-                                              <TableCell className="py-2 text-right font-medium text-blue-600 text-sm">
-                                                {formatCurrency(Number(w.jumlah))}
-                                              </TableCell>
-                                              <TableCell className="py-2 max-w-[140px] truncate text-sm">{w.catatan || '-'}</TableCell>
-                                              <TableCell className="py-2 text-right">
-                                                <div className="flex justify-end gap-1">
-                                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openEditDialog(w); }}>
-                                                    <Edit className="h-3.5 w-3.5" />
-                                                  </Button>
-                                                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setDeleteId(w.id); }}>
-                                                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                                  </Button>
-                                                </div>
-                                              </TableCell>
-                                            </TableRow>
-                                          ))
-                                        )}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </React.Fragment>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Rincian Pengambilan Gaji */}
+        <Card className="rounded-xl border-border/60 shadow-sm">
+          <CardHeader className="pb-3 flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ClipboardList className="h-4 w-4 text-blue-600" />
+              Rincian Pengambilan Gaji
+            </CardTitle>
+            <Badge variant="secondary" className="text-xs font-normal">
+              {detailWithdrawals.length} data
+            </Badge>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableHead className="h-9">Tanggal</TableHead>
+                    <TableHead className="h-9 text-right">Jumlah</TableHead>
+                    <TableHead className="h-9">Catatan</TableHead>
+                    <TableHead className="h-9 text-right">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {!selectedWorker ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                        Pilih worker untuk melihat rincian pengambilan.
+                      </TableCell>
+                    </TableRow>
+                  ) : loading ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                        Memuat data...
+                      </TableCell>
+                    </TableRow>
+                  ) : detailWithdrawals.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                        Belum ada pengambilan di bulan ini.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    detailWithdrawals.map(w => (
+                      <TableRow key={w.id}>
+                        <TableCell className="whitespace-nowrap py-2 text-sm">
+                          {format(new Date(w.tanggal), 'dd MMM yyyy', { locale: localeId })}
+                        </TableCell>
+                        <TableCell className="py-2 text-right font-medium text-sm text-blue-700 dark:text-blue-400">
+                          {formatCurrency(Number(w.jumlah))}
+                        </TableCell>
+                        <TableCell className="py-2 max-w-[160px] truncate text-sm">{w.catatan || '-'}</TableCell>
+                        <TableCell className="py-2 text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditDialog(w)}>
+                              <Edit className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteId(w.id)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Form Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -619,10 +585,10 @@ export default function WorkerSalaryBalancePage() {
                   <SelectValue placeholder="Pilih worker..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {dialogWorkerOptions.length === 0 ? (
+                  {workerOptions.length === 0 ? (
                     <div className="px-2 py-1.5 text-sm text-muted-foreground">Tidak ada worker bulan ini</div>
                   ) : (
-                    dialogWorkerOptions.map(w => (
+                    workerOptions.map(w => (
                       <SelectItem key={w} value={w}>{w}</SelectItem>
                     ))
                   )}
