@@ -266,25 +266,33 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      {/* Card Total Bulan Ini */}
+      {/* Card Total - Sync with active filters */}
       {(() => {
+        const isFilterActive = searchTerm.trim() !== '' || (selectedMonth && selectedMonth !== 'all');
         const currentMonth = format(new Date(), 'yyyy-MM');
-        const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
-        const currentMonthData = groupedData[currentMonth];
-        
+        const cardItems = isFilterActive
+          ? filteredData
+          : filteredData.filter(item => format(new Date(item.tanggal), 'yyyy-MM') === currentMonth);
+        const cardTotal = cardItems.reduce((sum, item) => sum + Number(item.nominal), 0);
+        const cardLabel = isFilterActive
+          ? (selectedMonth !== 'all'
+              ? format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: id })
+              : 'Hasil Filter')
+          : format(new Date(), 'MMMM yyyy', { locale: id });
+
         return (
           <Card className="bg-gradient-to-r from-red-50 to-white border-red-200 max-w-md">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-red-600">
-                    Total Pengeluaran - {currentMonthLabel}
+                    Total Pengeluaran - {cardLabel}
                   </p>
                   <p className="text-2xl font-bold text-red-900">
-                    Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
+                    Rp {cardTotal.toLocaleString('id-ID')}
                   </p>
                   <p className="text-xs text-red-500">
-                    {currentMonthData?.items?.length || 0} transaksi bulan ini
+                    {cardItems.length} transaksi
                   </p>
                 </div>
               </div>

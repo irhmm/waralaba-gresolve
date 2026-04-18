@@ -414,34 +414,43 @@ export default function WorkerIncomePage() {
         </Card>
       )}
 
-      {/* Card Total Bulan Ini */}
-      {(userRole?.role !== 'user' || searchTerm || (selectedMonth && selectedMonth !== 'all') || (selectedWorker && selectedWorker !== 'all')) && (
-        (() => {
-          const currentMonth = format(new Date(), 'yyyy-MM');
-          const currentMonthLabel = format(new Date(), 'MMMM yyyy', { locale: id });
-          const currentMonthData = groupedData[currentMonth];
-          
-          return (
-            <Card className="bg-gradient-to-r from-green-50 to-white border-green-200 max-w-md">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-green-600">
-                      Total Pendapatan Worker - {currentMonthLabel}
-                    </p>
-                    <p className="text-2xl font-bold text-green-900">
-                      Rp {(currentMonthData?.total || 0).toLocaleString('id-ID')}
-                    </p>
-                    <p className="text-xs text-green-500">
-                      {currentMonthData?.items?.length || 0} transaksi bulan ini
-                    </p>
-                  </div>
+      {/* Card Total - Sync with active filters */}
+      {(() => {
+        const isFilterActive =
+          searchTerm.trim() !== '' ||
+          (selectedMonth && selectedMonth !== 'all') ||
+          (selectedWorker && selectedWorker !== 'all');
+        const currentMonth = format(new Date(), 'yyyy-MM');
+        const cardItems = isFilterActive
+          ? filteredData
+          : filteredData.filter(item => format(new Date(item.tanggal), 'yyyy-MM') === currentMonth);
+        const cardTotal = cardItems.reduce((sum, item) => sum + Number(item.fee), 0);
+        const cardLabel = isFilterActive
+          ? (selectedMonth !== 'all'
+              ? format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: id })
+              : 'Hasil Filter')
+          : format(new Date(), 'MMMM yyyy', { locale: id });
+
+        return (
+          <Card className="bg-gradient-to-r from-green-50 to-white border-green-200 max-w-md">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-green-600">
+                    Total Pendapatan Worker - {cardLabel}
+                  </p>
+                  <p className="text-2xl font-bold text-green-900">
+                    Rp {cardTotal.toLocaleString('id-ID')}
+                  </p>
+                  <p className="text-xs text-green-500">
+                    {cardItems.length} transaksi
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          );
-        })()
-      )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Filters and Actions */}
       <Card>
