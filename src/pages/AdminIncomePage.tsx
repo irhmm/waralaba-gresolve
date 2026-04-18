@@ -288,9 +288,21 @@ export default function AdminIncomePage() {
   const availableMonths = useMemo(() => getAvailableMonths(adminIncomes), [adminIncomes]);
 
   const availableCodes = useMemo(() => {
-    const codes = adminIncomes.map(item => item.code);
+    const sourceData = (selectedMonth && selectedMonth !== 'all')
+      ? adminIncomes.filter(item =>
+          item.tanggal && format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth
+        )
+      : adminIncomes;
+    const codes = sourceData.map(item => item.code).filter(Boolean);
     return [...new Set(codes)].sort();
-  }, [adminIncomes]);
+  }, [adminIncomes, selectedMonth]);
+
+  // Auto-reset codeFilter if no longer available in current month
+  useEffect(() => {
+    if (codeFilter && codeFilter !== 'all' && !availableCodes.includes(codeFilter)) {
+      setCodeFilter('all');
+    }
+  }, [availableCodes, codeFilter]);
 
   const handleExport = () => {
     exportAdminIncomeToExcel(filteredData);

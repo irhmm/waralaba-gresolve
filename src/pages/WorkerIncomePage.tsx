@@ -250,24 +250,39 @@ export default function WorkerIncomePage() {
       .join(' ');
   };
 
-  // Get unique worker names for filter (case-insensitive)
+  // Get unique worker names for filter (case-insensitive), filtered by selected month
   const uniqueWorkerNames = useMemo(() => {
     const namesMap = new Map<string, string>();
-    
-    workerIncomes
+
+    const sourceData = (selectedMonth && selectedMonth !== 'all')
+      ? workerIncomes.filter(item =>
+          item.tanggal && format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth
+        )
+      : workerIncomes;
+
+    sourceData
       .filter(item => item.worker_name)
       .forEach(item => {
         const normalizedName = item.worker_name.toLowerCase().trim();
-        // Keep the first occurrence's casing
         if (!namesMap.has(normalizedName)) {
           namesMap.set(normalizedName, item.worker_name.trim());
         }
       });
-    
-    return Array.from(namesMap.values()).sort((a, b) => 
+
+    return Array.from(namesMap.values()).sort((a, b) =>
       a.toLowerCase().localeCompare(b.toLowerCase())
     );
-  }, [workerIncomes]);
+  }, [workerIncomes, selectedMonth]);
+
+  // Auto-reset selectedWorker if not present in current month's options
+  useEffect(() => {
+    if (selectedWorker && selectedWorker !== 'all') {
+      const exists = uniqueWorkerNames.some(
+        n => n.toLowerCase().trim() === selectedWorker.toLowerCase().trim()
+      );
+      if (!exists) setSelectedWorker('all');
+    }
+  }, [uniqueWorkerNames, selectedWorker]);
 
   const handleExport = () => {
     exportWorkerIncomeToExcel(filteredData, []);
