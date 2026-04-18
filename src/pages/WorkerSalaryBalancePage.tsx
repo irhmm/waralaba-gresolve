@@ -158,15 +158,19 @@ export default function WorkerSalaryBalancePage() {
     }
   }, [workerOptions, selectedWorker]);
 
-  // Filtered detail data for the selected worker
+  // Filtered detail data — kalau worker tidak dipilih, tampilkan semua data bulan tsb
   const workerKey = selectedWorker ? normalizeKey(selectedWorker) : null;
 
   const detailIncomes = useMemo(
-    () => workerKey ? monthIncomes.filter(i => i.worker_name && normalizeKey(i.worker_name) === workerKey) : [],
+    () => workerKey
+      ? monthIncomes.filter(i => i.worker_name && normalizeKey(i.worker_name) === workerKey)
+      : monthIncomes,
     [monthIncomes, workerKey]
   );
   const detailWithdrawals = useMemo(
-    () => workerKey ? monthWithdrawals.filter(w => normalizeKey(w.worker_name) === workerKey) : [],
+    () => workerKey
+      ? monthWithdrawals.filter(w => normalizeKey(w.worker_name) === workerKey)
+      : monthWithdrawals,
     [monthWithdrawals, workerKey]
   );
 
@@ -450,27 +454,22 @@ export default function WorkerSalaryBalancePage() {
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="h-9">Tanggal</TableHead>
+                    {!selectedWorker && <TableHead className="h-9">Worker</TableHead>}
                     <TableHead className="h-9">Kode</TableHead>
                     <TableHead className="h-9">Jobdesk</TableHead>
                     <TableHead className="h-9 text-right">Fee</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!selectedWorker ? (
+                  {loading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
-                        Pilih worker untuk melihat rincian pendapatan.
-                      </TableCell>
-                    </TableRow>
-                  ) : loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Memuat data...
                       </TableCell>
                     </TableRow>
                   ) : detailIncomes.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Tidak ada pendapatan di bulan ini.
                       </TableCell>
                     </TableRow>
@@ -480,6 +479,11 @@ export default function WorkerSalaryBalancePage() {
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(i.tanggal), 'dd MMM yyyy', { locale: localeId })}
                         </TableCell>
+                        {!selectedWorker && (
+                          <TableCell className="py-2 text-sm font-medium">
+                            {i.worker_name ? toTitleCase(i.worker_name) : '-'}
+                          </TableCell>
+                        )}
                         <TableCell className="py-2">
                           {i.code ? <Badge variant="secondary" className="text-xs font-mono">{i.code}</Badge> : <span className="text-muted-foreground">-</span>}
                         </TableCell>
@@ -513,27 +517,22 @@ export default function WorkerSalaryBalancePage() {
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="h-9">Tanggal</TableHead>
+                    {!selectedWorker && <TableHead className="h-9">Worker</TableHead>}
                     <TableHead className="h-9 text-right">Jumlah</TableHead>
                     <TableHead className="h-9">Catatan</TableHead>
                     <TableHead className="h-9 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!selectedWorker ? (
+                  {loading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
-                        Pilih worker untuk melihat rincian pengambilan.
-                      </TableCell>
-                    </TableRow>
-                  ) : loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Memuat data...
                       </TableCell>
                     </TableRow>
                   ) : detailWithdrawals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Belum ada pengambilan di bulan ini.
                       </TableCell>
                     </TableRow>
@@ -543,6 +542,11 @@ export default function WorkerSalaryBalancePage() {
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(w.tanggal), 'dd MMM yyyy', { locale: localeId })}
                         </TableCell>
+                        {!selectedWorker && (
+                          <TableCell className="py-2 text-sm font-medium">
+                            {toTitleCase(w.worker_name)}
+                          </TableCell>
+                        )}
                         <TableCell className="py-2 text-right font-medium text-sm text-blue-700 dark:text-blue-400">
                           {formatCurrency(Number(w.jumlah))}
                         </TableCell>
