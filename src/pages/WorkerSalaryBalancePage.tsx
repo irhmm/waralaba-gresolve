@@ -158,15 +158,19 @@ export default function WorkerSalaryBalancePage() {
     }
   }, [workerOptions, selectedWorker]);
 
-  // Filtered detail data for the selected worker
+  // Filtered detail data — kalau worker tidak dipilih, tampilkan semua data bulan tsb
   const workerKey = selectedWorker ? normalizeKey(selectedWorker) : null;
 
   const detailIncomes = useMemo(
-    () => workerKey ? monthIncomes.filter(i => i.worker_name && normalizeKey(i.worker_name) === workerKey) : [],
+    () => workerKey
+      ? monthIncomes.filter(i => i.worker_name && normalizeKey(i.worker_name) === workerKey)
+      : monthIncomes,
     [monthIncomes, workerKey]
   );
   const detailWithdrawals = useMemo(
-    () => workerKey ? monthWithdrawals.filter(w => normalizeKey(w.worker_name) === workerKey) : [],
+    () => workerKey
+      ? monthWithdrawals.filter(w => normalizeKey(w.worker_name) === workerKey)
+      : monthWithdrawals,
     [monthWithdrawals, workerKey]
   );
 
