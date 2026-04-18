@@ -85,6 +85,12 @@ export default function WorkerSalaryBalancePage() {
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
+  // Pagination
+  const [incomePage, setIncomePage] = useState(1);
+  const [incomePageSize, setIncomePageSize] = useState(10);
+  const [withdrawalPage, setWithdrawalPage] = useState(1);
+  const [withdrawalPageSize, setWithdrawalPageSize] = useState(10);
+
   useRealtimeData({
     table: 'worker_income',
     franchiseId,
