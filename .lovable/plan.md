@@ -1,59 +1,42 @@
 
 
-## Rencana: Samakan Tampilan dengan Screenshot
+## Rencana: Tombol "Tambah Pengambilan Gaji" Selalu Aktif
 
 ### Pemahaman
-User ingin balik ke tampilan **single-worker focused** (sesuai screenshot), bukan tabel agregat multi-worker. Layout persis seperti foto:
-- Title: **"Rekap Gaji Worker"**
-- 1 Filter Card: Pilih Worker + Pilih Bulan + tombol hijau "+ Tambah Pengambilan Gaji"
-- 3 Summary Cards full-color (hijau muda / biru muda / hijau muda)
-- 2 Tabel side-by-side: **Rincian Pendapatan** & **Rincian Pengambilan Gaji**
+Saat ini tombol "+ Tambah Pengambilan Gaji" disabled jika belum pilih worker. User ingin tombol selalu bisa di-klik. Worker dipilih di dalam dialog (dropdown sudah ada di form, sesuai foto).
 
 ### Perubahan di `WorkerSalaryBalancePage.tsx`
 
-**1. Title** → ubah dari "Sisa Gaji Worker" jadi **"Rekap Gaji Worker"**, hapus subtitle.
+**1. Aktifkan Tombol Global**
+- Hapus kondisi `addDisabled` yang bergantung pada `selectedWorker`.
+- Tombol hanya disabled saat dialog terbuka (default behavior) — kalau tidak, selalu enabled.
+- Hapus tooltip/hint "pilih worker dulu".
 
-**2. Filter Card** (samakan dengan foto)
-- Header kecil dengan ikon funnel + teks "Filter Data"
-- Grid 2 kolom (Pilih Worker, Pilih Bulan) + tombol hijau di kanan
-- Dropdown worker: placeholder "Pilih worker..." (default unselected, **bukan** "Semua Worker")
-- Sumber dropdown worker: worker yang punya pendapatan di bulan terpilih
-- Tombol "+ Tambah Pengambilan Gaji" disabled jika belum pilih worker
+**2. Dialog Buka Tanpa Pre-Selected Worker**
+- Saat tombol di-klik tanpa `selectedWorker`, dialog terbuka dengan field Worker kosong (placeholder "Pilih worker...").
+- Saat ada `selectedWorker`, auto-fill ke worker tsb (tetap bisa diganti).
+- Tanggal default = hari ini (atau tanggal 1 bulan terpilih) — tetap.
 
-**3. Summary Cards** (3 kartu solid color seperti foto)
-- Total Pendapatan: bg `bg-emerald-50`, text `text-emerald-700`, ikon TrendingUp
-- Total Pengambilan: bg `bg-blue-50`, text `text-blue-700`, ikon ClipboardList
-- Sisa Saldo: bg `bg-emerald-50`, text `text-emerald-700`, ikon Calculator
-- Hilangkan border-l accent, ganti ke full background tint
-- Hanya tampil jika worker sudah dipilih (atau tampil dengan nilai 0 sebelum pilih)
+**3. Validasi Saldo Pindah ke Submit**
+Karena worker baru ditentukan di dalam dialog:
+- Cek `getSisaForWorker(workerName) <= 0` saat **submit**, bukan saat buka dialog.
+- Jika worker yang dipilih di dialog punya sisa 0/negatif → toast error "Worker ini tidak punya saldo tersisa di bulan ini" + return (jangan close).
+- Validasi `projectedSisa < 0` (jumlah melebihi sisa) tetap.
 
-**4. Dua Tabel Side-by-side** (grid `md:grid-cols-2 gap-4`)
-- **Rincian Pendapatan**: Tanggal, Kode (badge), Jobdesk, Fee — read-only. Header kanan: badge kecil "X data"
-- **Rincian Pengambilan Gaji**: Tanggal, Jumlah, Catatan, Aksi (Edit/Delete icon buttons)
-- Hilangkan tombol "+ Tambah Pengambilan" yang ada di header panel detail
-- Empty state ramah jika belum pilih worker / tidak ada data
+**4. Sumber Dropdown Worker di Dialog**
+- Tetap pakai worker yang punya pendapatan di bulan terpilih.
+- Jika kosong (tidak ada worker dengan pendapatan bulan tsb) → tampilkan empty state di dropdown "Belum ada worker dengan pendapatan di bulan ini".
 
-**5. Hapus Fitur Tabel Agregat & Expandable Row**
-- Hapus tabel "Sisa Gaji per Worker"
-- Hapus state `expandedKey`
-- Hapus tombol Tambah per row (memang tidak ada di refactor terakhir, dipastikan)
-
-**6. Validasi: Tidak Bisa Withdraw Jika Saldo = 0**
-Tambah cek di `handleSubmit` dan `openCreateDialog`:
-- Jika `getSisaForWorker(workerName) <= 0` (dan bukan editing) → toast error "Worker ini tidak punya saldo tersisa di bulan ini" + return
-- Tombol "+ Tambah Pengambilan Gaji" disable juga ketika worker terpilih tapi `sisaSaldo <= 0`
-
-**7. Dialog Tambah/Edit**
-- Dropdown worker tetap (auto-fill ke worker yang sedang dipilih, masih bisa diganti dari list)
-- Validasi sisa tetap; tambahan: blok jika sisa untuk worker terpilih = 0
+**5. UX Tambahan**
+- Tombol Simpan di dialog disabled jika field Worker / Jumlah / Tanggal kosong (sesuai foto: tombol biru muda saat belum lengkap).
 
 ### File yang Diubah
 | File | Aksi |
 |---|---|
-| `src/pages/WorkerSalaryBalancePage.tsx` | Refactor besar: balik ke single-worker view sesuai screenshot, hapus tabel agregat & expandable row, samakan styling summary cards, tambah blok withdraw saat saldo 0 |
+| `src/pages/WorkerSalaryBalancePage.tsx` | Hapus disable button berbasis selectedWorker, pindah validasi saldo ke submit, dialog buka tanpa worker pre-selected |
 
 ### Catatan Teknis
-- Worker dropdown source = `useMemo` dari worker yang punya pendapatan di bulan terpilih (exact match per nama ter-normalize).
-- Reset `selectedWorker` ke `''` saat ganti bulan jika worker tidak ada di bulan baru.
-- Realtime, RLS, normalisasi Title Case — tetap.
+- `openCreateDialog()` tidak lagi cek `sisaSaldo`. Reset form: `worker = selectedWorker || ''`, `tanggal = today`, `jumlah = ''`, `catatan = ''`.
+- `handleSubmit` tambah guard awal: jika `!form.worker_name` → toast "Pilih worker dulu" + return.
+- Bulan terpilih di dialog mengikuti `selectedMonth` filter (validasi sisa berbasis bulan tsb).
 
