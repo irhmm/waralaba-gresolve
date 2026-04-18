@@ -185,6 +185,22 @@ export default function WorkerSalaryBalancePage() {
   const totalPengambilan = useMemo(() => detailWithdrawals.reduce((s, w) => s + Number(w.jumlah || 0), 0), [detailWithdrawals]);
   const sisaSaldo = totalPendapatan - totalPengambilan;
 
+  // Reset pagination when filters change
+  useEffect(() => { setIncomePage(1); }, [selectedWorker, selectedMonth, incomePageSize]);
+  useEffect(() => { setWithdrawalPage(1); }, [selectedWorker, selectedMonth, withdrawalPageSize]);
+
+  const incomeTotalPages = Math.max(1, Math.ceil(detailIncomes.length / incomePageSize));
+  const withdrawalTotalPages = Math.max(1, Math.ceil(detailWithdrawals.length / withdrawalPageSize));
+
+  const paginatedIncomes = useMemo(
+    () => detailIncomes.slice((incomePage - 1) * incomePageSize, incomePage * incomePageSize),
+    [detailIncomes, incomePage, incomePageSize]
+  );
+  const paginatedWithdrawals = useMemo(
+    () => detailWithdrawals.slice((withdrawalPage - 1) * withdrawalPageSize, withdrawalPage * withdrawalPageSize),
+    [detailWithdrawals, withdrawalPage, withdrawalPageSize]
+  );
+
   const getSisaForWorker = (workerName: string) => {
     const key = normalizeKey(workerName);
     const pendapatan = monthIncomes
