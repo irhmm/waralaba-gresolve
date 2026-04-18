@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useRealtimeData } from '@/hooks/useRealtimeData';
 import { Plus, Edit, Trash2, TrendingUp, ClipboardList, Calculator, Filter } from 'lucide-react';
+import { DataTablePagination } from '@/components/ui/data-table-pagination';
 import { format } from 'date-fns';
 import { id as localeId } from 'date-fns/locale';
 import { z } from 'zod';
