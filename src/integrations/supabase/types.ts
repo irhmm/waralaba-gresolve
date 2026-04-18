@@ -348,6 +348,39 @@ export type Database = {
           },
         ]
       }
+      worker_salary_withdrawals: {
+        Row: {
+          catatan: string | null
+          created_at: string | null
+          created_by: string
+          franchise_id: string
+          id: string
+          jumlah: number
+          tanggal: string
+          worker_name: string
+        }
+        Insert: {
+          catatan?: string | null
+          created_at?: string | null
+          created_by?: string
+          franchise_id: string
+          id?: string
+          jumlah: number
+          tanggal?: string
+          worker_name: string
+        }
+        Update: {
+          catatan?: string | null
+          created_at?: string | null
+          created_by?: string
+          franchise_id?: string
+          id?: string
+          jumlah?: number
+          tanggal?: string
+          worker_name?: string
+        }
+        Relationships: []
+      }
       workers: {
         Row: {
           created_at: string | null

@@ -24,6 +24,7 @@ import {
   UserCheck,
   Plus,
   Percent,
+  Wallet,
 } from 'lucide-react';
 
 const menuItems = {
@@ -89,6 +90,11 @@ const menuItems = {
       title: 'Pendapatan Admin',
       url: '/admin-income',
       icon: TrendingUp,
+    },
+    {
+      title: 'Sisa Gaji Worker',
+      url: '/worker-salary-balance',
+      icon: Wallet,
     },
     {
       title: 'Pengeluaran',
