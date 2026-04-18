@@ -517,27 +517,22 @@ export default function WorkerSalaryBalancePage() {
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="h-9">Tanggal</TableHead>
+                    {!selectedWorker && <TableHead className="h-9">Worker</TableHead>}
                     <TableHead className="h-9 text-right">Jumlah</TableHead>
                     <TableHead className="h-9">Catatan</TableHead>
                     <TableHead className="h-9 text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!selectedWorker ? (
+                  {loading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
-                        Pilih worker untuk melihat rincian pengambilan.
-                      </TableCell>
-                    </TableRow>
-                  ) : loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Memuat data...
                       </TableCell>
                     </TableRow>
                   ) : detailWithdrawals.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Belum ada pengambilan di bulan ini.
                       </TableCell>
                     </TableRow>
@@ -547,6 +542,11 @@ export default function WorkerSalaryBalancePage() {
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(w.tanggal), 'dd MMM yyyy', { locale: localeId })}
                         </TableCell>
+                        {!selectedWorker && (
+                          <TableCell className="py-2 text-sm font-medium">
+                            {toTitleCase(w.worker_name)}
+                          </TableCell>
+                        )}
                         <TableCell className="py-2 text-right font-medium text-sm text-blue-700 dark:text-blue-400">
                           {formatCurrency(Number(w.jumlah))}
                         </TableCell>
