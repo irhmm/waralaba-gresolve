@@ -758,7 +758,7 @@ const Dashboard = () => {
           <>
             <Card className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-blue-800">Total Franchise</CardTitle>
+                <CardTitle className="text-sm font-medium text-blue-800 flex items-center">Total Franchise<InfoTooltip text="Jumlah franchise terdaftar di sistem" /></CardTitle>
                 <div className="p-2 bg-blue-500 text-white rounded-full">
                   <Building2 className="h-4 w-4" />
                 </div>
@@ -771,7 +771,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-green-50 to-green-100 border-green-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-green-800">Total Pendapatan Worker</CardTitle>
+                <CardTitle className="text-sm font-medium text-green-800 flex items-center">Total Pendapatan Worker<InfoTooltip text="Σ fee semua transaksi worker_income (seluruh franchise, sepanjang waktu)" /></CardTitle>
                 <div className="p-2 bg-green-500 text-white rounded-full">
                   <DollarSign className="h-4 w-4" />
                 </div>
@@ -784,7 +784,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-purple-800">Total Pendapatan Admin</CardTitle>
+                <CardTitle className="text-sm font-medium text-purple-800 flex items-center">Total Pendapatan Admin<InfoTooltip text="Σ nominal admin_income (seluruh franchise, sepanjang waktu)" /></CardTitle>
                 <div className="p-2 bg-purple-500 text-white rounded-full">
                   <TrendingUp className="h-4 w-4" />
                 </div>
@@ -797,7 +797,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-orange-800">Total Worker</CardTitle>
+                <CardTitle className="text-sm font-medium text-orange-800 flex items-center">Total Worker<InfoTooltip text="Jumlah worker terdaftar (seluruh franchise)" /></CardTitle>
                 <div className="p-2 bg-orange-500 text-white rounded-full">
                   <Users className="h-4 w-4" />
                 </div>
@@ -810,7 +810,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-emerald-800">Total Bagi Hasil (Bulan Ini)</CardTitle>
+                <CardTitle className="text-sm font-medium text-emerald-800 flex items-center">Total Bagi Hasil (Bulan Ini)<InfoTooltip text="Σ share_nominal franchise_profit_sharing untuk bulan berjalan" /></CardTitle>
                 <div className="p-2 bg-emerald-500 text-white rounded-full">
                   <Percent className="h-4 w-4" />
                 </div>
@@ -823,7 +823,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-red-50 to-red-100 border-red-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-red-800">Total Pengeluaran (Bulan Ini)</CardTitle>
+                <CardTitle className="text-sm font-medium text-red-800 flex items-center">Total Pengeluaran (Bulan Ini)<InfoTooltip text="Σ nominal expenses bulan berjalan (seluruh franchise)" /></CardTitle>
                 <div className="p-2 bg-red-500 text-white rounded-full">
                   <CreditCard className="h-4 w-4" />
                 </div>
@@ -838,7 +838,7 @@ const Dashboard = () => {
           <>
             <Card className="card-hover bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-blue-800">Pendapatan Worker</CardTitle>
+                <CardTitle className="text-sm font-medium text-blue-800 flex items-center">Pendapatan Worker<InfoTooltip text="Σ fee worker_income franchise ini bulan berjalan" /></CardTitle>
                 <div className="p-2 bg-blue-500 text-white rounded-full">
                   <DollarSign className="h-4 w-4" />
                 </div>
@@ -853,7 +853,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-purple-800">Pendapatan Admin</CardTitle>
+                <CardTitle className="text-sm font-medium text-purple-800 flex items-center">Pendapatan Admin<InfoTooltip text="Σ nominal admin_income franchise ini bulan berjalan" /></CardTitle>
                 <div className="p-2 bg-purple-500 text-white rounded-full">
                   <TrendingUp className="h-4 w-4" />
                 </div>
@@ -868,7 +868,7 @@ const Dashboard = () => {
 
             <Card className="card-hover bg-gradient-to-br from-red-50 to-red-100 border-red-200">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-red-800">Pengeluaran</CardTitle>
+                <CardTitle className="text-sm font-medium text-red-800 flex items-center">Pengeluaran<InfoTooltip text="Σ nominal expenses franchise ini bulan berjalan" /></CardTitle>
                 <div className="p-2 bg-red-500 text-white rounded-full">
                   <CreditCard className="h-4 w-4" />
                 </div>
@@ -884,7 +884,7 @@ const Dashboard = () => {
             {userRole?.role === 'admin_marketing' && (
               <Card className="card-hover bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium text-orange-800">Total Worker</CardTitle>
+                  <CardTitle className="text-sm font-medium text-orange-800 flex items-center">Total Worker<InfoTooltip text="Jumlah worker aktif franchise ini" /></CardTitle>
                   <div className="p-2 bg-orange-500 text-white rounded-full">
                     <Users className="h-4 w-4" />
                   </div>
@@ -900,7 +900,7 @@ const Dashboard = () => {
               <>
                 <Card className="card-hover bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-emerald-800">Bagi Hasil Owner</CardTitle>
+                    <CardTitle className="text-sm font-medium text-emerald-800 flex items-center">Bagi Hasil Owner<InfoTooltip text="(Pendapatan Admin + Pendapatan Worker) × % admin bagi hasil" /></CardTitle>
                     <div className="p-2 bg-emerald-500 text-white rounded-full">
                       <Percent className="h-4 w-4" />
                     </div>
@@ -915,7 +915,7 @@ const Dashboard = () => {
 
                 <Card className="card-hover bg-gradient-to-br from-teal-50 to-teal-100 border-teal-200">
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium text-teal-800">Laba Bersih</CardTitle>
+                    <CardTitle className="text-sm font-medium text-teal-800 flex items-center">Laba Bersih<InfoTooltip text="Pendapatan Admin − Pengeluaran − Bagi Hasil Owner" /></CardTitle>
                     <div className="p-2 bg-teal-500 text-white rounded-full">
                       <BarChart3 className="h-4 w-4" />
                     </div>
@@ -1176,17 +1176,17 @@ const Dashboard = () => {
                     <TableHeader className="bg-blue-50">
                       <TableRow>
                         <TableHead className="font-semibold text-blue-900">Bulan</TableHead>
-                        <TableHead className="font-semibold text-blue-900 text-right">Pendapatan Admin</TableHead>
-                        <TableHead className="font-semibold text-blue-900 text-right">Pendapatan Worker</TableHead>
-                        <TableHead className="font-semibold text-blue-900 text-right">Pengeluaran</TableHead>
+                        <TableHead className="font-semibold text-blue-900 text-right">Pendapatan Admin<InfoTooltip text="Σ admin_income.nominal pada bulan tsb" /></TableHead>
+                        <TableHead className="font-semibold text-blue-900 text-right">Pendapatan Worker<InfoTooltip text="Σ worker_income.fee pada bulan tsb" /></TableHead>
+                        <TableHead className="font-semibold text-blue-900 text-right">Pengeluaran<InfoTooltip text="Σ expenses.nominal pada bulan tsb" /></TableHead>
                         {userRole?.role === 'super_admin' && (
-                          <TableHead className="font-semibold text-blue-900 text-right">Total Bagi Hasil</TableHead>
+                          <TableHead className="font-semibold text-blue-900 text-right">Total Bagi Hasil<InfoTooltip text="Σ share_nominal seluruh franchise pada bulan tsb" /></TableHead>
                         )}
                         {userRole?.role !== 'super_admin' && (
                           <>
-                            <TableHead className="font-semibold text-blue-900 text-right">Bagi Hasil Owner</TableHead>
-                            <TableHead className="font-semibold text-blue-900 text-right">Omset</TableHead>
-                            <TableHead className="font-semibold text-teal-900 text-right">Laba Bersih</TableHead>
+                            <TableHead className="font-semibold text-blue-900 text-right">Bagi Hasil Owner<InfoTooltip text="(Pendapatan Admin + Worker) × % admin" /></TableHead>
+                            <TableHead className="font-semibold text-blue-900 text-right">Omset<InfoTooltip text="(Pendapatan Admin + Worker − Pengeluaran) − Bagi Hasil" /></TableHead>
+                            <TableHead className="font-semibold text-teal-900 text-right">Laba Bersih<InfoTooltip text="Pendapatan Admin − Pengeluaran − Bagi Hasil" /></TableHead>
                           </>
                         )}
                       </TableRow>
