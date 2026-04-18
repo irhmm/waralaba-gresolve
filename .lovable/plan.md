@@ -1,84 +1,88 @@
 
 
-## Masalah
+## Rencana: Page "Sisa Gaji Worker"
 
-Dropdown filter "Worker" (di `WorkerIncomePage`) dan "Code" (di `AdminIncomePage`) saat ini menampilkan **semua** nama/kode dari seluruh data — tidak peduli bulan yang dipilih. Akibatnya, user melihat nama worker / kode admin yang **tidak punya transaksi** di bulan terpilih, padahal hasilnya akan kosong saat dipilih.
+### Tujuan
+Page baru untuk tracking sisa gaji setiap worker per bulan: **Sisa = Total Pendapatan Worker (bulan X) − Total Pengambilan Gaji (bulan X)**. Reset tiap bulan, no carry-over.
 
-## Perbaikan
+### Akses
+- Hanya role **`franchise`** (sesuai jawaban user).
+- Sidebar: tambah menu hanya di array `franchise` di `AppSidebar.tsx`.
+- Route: `/worker-salary-balance` dengan `RouteGuard`.
 
-Filter daftar opsi dropdown agar **hanya menampilkan nama worker / kode admin yang punya pendapatan** di bulan yang sedang dipilih. Jika `selectedMonth === 'all'`, tampilkan semua (perilaku saat ini).
+---
 
-### File 1: `src/pages/WorkerIncomePage.tsx`
+### 1. Database — Table baru `worker_salary_withdrawals`
 
-Ubah `uniqueWorkerNames` (line 254–270) agar bersumber dari data yang sudah difilter berdasarkan bulan saja (bukan worker, bukan search — supaya user tetap bisa ganti pilihan worker tanpa list mengecil saat memilih satu worker):
+Migration:
+```sql
+CREATE TABLE public.worker_salary_withdrawals (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  franchise_id uuid NOT NULL,
+  worker_name text NOT NULL,           -- plain text, konsisten dgn worker_income
+  jumlah numeric NOT NULL CHECK (jumlah > 0),
+  catatan text,
+  tanggal timestamptz NOT NULL DEFAULT now(),
+  created_by uuid NOT NULL DEFAULT auth.uid(),
+  created_at timestamptz DEFAULT now()
+);
 
-```ts
-const uniqueWorkerNames = useMemo(() => {
-  const namesMap = new Map<string, string>();
-  
-  // Hanya pertimbangkan transaksi pada bulan yang dipilih
-  const sourceData = (selectedMonth && selectedMonth !== 'all')
-    ? workerIncomes.filter(item => 
-        format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth
-      )
-    : workerIncomes;
-  
-  sourceData
-    .filter(item => item.worker_name)
-    .forEach(item => {
-      const normalizedName = item.worker_name.toLowerCase().trim();
-      if (!namesMap.has(normalizedName)) {
-        namesMap.set(normalizedName, item.worker_name.trim());
-      }
-    });
-  
-  return Array.from(namesMap.values()).sort((a, b) => 
-    a.toLowerCase().localeCompare(b.toLowerCase())
-  );
-}, [workerIncomes, selectedMonth]);
+ALTER TABLE public.worker_salary_withdrawals ENABLE ROW LEVEL SECURITY;
 ```
 
-**Bonus**: jika `selectedWorker` yang sedang aktif tidak ada dalam list baru (karena ganti bulan), reset `selectedWorker` ke `'all'` agar tidak ada filter "hantu":
+**RLS policies** (mirror pola `worker_income`, tapi terbatas role `franchise` + super_admin):
+- `SELECT`: super_admin OR (franchise_id = get_user_franchise_id())
+- `INSERT/UPDATE/DELETE`: super_admin OR (franchise_id = get_user_franchise_id() AND user role = `franchise` AND created_by = auth.uid())
 
-```ts
-useEffect(() => {
-  if (selectedWorker !== 'all' && !uniqueWorkerNames.some(
-    n => n.toLowerCase().trim() === selectedWorker.toLowerCase().trim()
-  )) {
-    setSelectedWorker('all');
-  }
-}, [uniqueWorkerNames, selectedWorker]);
-```
+Realtime enabled untuk auto-refresh.
 
-### File 2: `src/pages/AdminIncomePage.tsx`
+---
 
-Ubah `availableCodes` (line 290–293) agar bersumber dari data yang difilter bulan:
+### 2. Halaman `src/pages/WorkerSalaryBalancePage.tsx`
 
-```ts
-const availableCodes = useMemo(() => {
-  const sourceData = (selectedMonth && selectedMonth !== 'all')
-    ? adminIncomes.filter(item => 
-        format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth
-      )
-    : adminIncomes;
-  
-  const codes = sourceData.map(item => item.code);
-  return [...new Set(codes)].sort();
-}, [adminIncomes, selectedMonth]);
-```
+**Layout** (sesuai screenshot referensi):
 
-Tambah auto-reset `codeFilter` jika kode terpilih tidak ada di list baru:
+**a. Card Filter Data**
+- Dropdown **Pilih Worker** (wajib pilih, default placeholder "Pilih worker..."). Sumber: `worker_income.worker_name` distinct yang punya transaksi di bulan terpilih (pakai pola dropdown dinamis yang sudah ada).
+- **MonthSelector** Pilih Bulan (default: bulan ini).
+- Tombol hijau **+ Tambah Pengambilan Gaji** → buka Dialog form.
 
-```ts
-useEffect(() => {
-  if (codeFilter !== 'all' && !availableCodes.includes(codeFilter)) {
-    setCodeFilter('all');
-  }
-}, [availableCodes, codeFilter]);
-```
+**b. Tiga Summary Cards** (tampil setelah worker dipilih):
+- 🟢 **Total Pendapatan** — sum `fee` dari `worker_income` (worker terpilih, bulan terpilih)
+- 🔵 **Total Pengambilan** — sum `jumlah` dari `worker_salary_withdrawals`
+- 🟢 **Sisa Saldo** — `Total Pendapatan − Total Pengambilan`
 
-## Hasil
-- Pilih bulan **Januari** → dropdown worker/code hanya menampilkan worker/kode yang **punya transaksi di Januari**.
-- Pilih **Semua Bulan** → dropdown menampilkan semua nama (perilaku lama).
-- Jika pilihan worker/code aktif lalu user ganti bulan dan worker/code itu tidak ada di bulan baru → filter otomatis reset ke "Semua".
+**c. Dua Table side-by-side** (stack di mobile):
+- **Rincian Pendapatan** — kolom: Tanggal, Kode (badge), Jobdesk, Fee — read-only
+- **Rincian Pengambilan Gaji** — kolom: Tanggal, Jumlah, Catatan, Aksi (Edit/Delete) — dengan pagination
+
+**d. Dialog Form Pengambilan Gaji** — fields:
+- Tanggal (date picker, default today)
+- Worker (auto-fill dari worker yang sedang dipilih, read-only)
+- Jumlah (number, min 1, validasi tidak boleh > Sisa Saldo dengan toast warning)
+- Catatan (textarea, optional, max 500 char)
+- Validasi pakai **zod schema**
+
+---
+
+### 3. Filter Worker dropdown — exact match
+Mengikuti pola yang sudah diterapkan: pakai `useMemo` derive dari `worker_income` filtered by `selectedMonth`, exact match `worker_name.trim().toLowerCase()`.
+
+---
+
+### 4. File yang Diubah/Dibuat
+
+| File | Aksi |
+|---|---|
+| `supabase/migrations/...` | Buat table + RLS + realtime |
+| `src/pages/WorkerSalaryBalancePage.tsx` | **BARU** |
+| `src/App.tsx` | Tambah route `/worker-salary-balance` |
+| `src/components/layout/AppSidebar.tsx` | Tambah menu di array `franchise` saja |
+
+### Catatan Teknis
+- Pakai `useRealtimeData` untuk subscribe `worker_salary_withdrawals` & `worker_income`.
+- Format mata uang pakai helper existing `formatCurrency`.
+- Pagination pakai `DataTablePagination`.
+- Worker name normalize ke Title Case saat insert (konsisten memori `case-insensitive-worker-names`).
+- Setelah delete/edit pengambilan, summary cards auto-update via realtime.
 
