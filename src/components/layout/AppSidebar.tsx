@@ -46,7 +46,6 @@ const menuGroups: Record<string, MenuGroup[]> = {
         { title: 'Dashboard', url: '/', icon: BarChart3 },
         { title: 'Laba Bersih Franchise', url: '/admin/franchise-net-income', icon: DollarSign },
         { title: 'Pengaturan Profit', url: '/admin/profit-sharing', icon: Percent },
-        { title: 'Data Bagi Hasil Franchise', url: '/admin/franchise-profit-sharing', icon: TrendingUp },
       ],
     },
     {
@@ -54,6 +53,7 @@ const menuGroups: Record<string, MenuGroup[]> = {
       items: [
         { title: 'List Franchise', url: '/admin/franchises', icon: Building2 },
         { title: 'Add Franchise', url: '/admin/franchises/new', icon: Plus },
+        { title: 'Data Bagi Hasil Franchise', url: '/admin/franchise-profit-sharing', icon: TrendingUp },
       ],
     },
     {
