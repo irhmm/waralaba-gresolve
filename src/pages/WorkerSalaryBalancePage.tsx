@@ -626,7 +626,11 @@ export default function WorkerSalaryBalancePage() {
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Batal</Button>
-              <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              <Button
+                type="submit"
+                disabled={!formData.worker_name || !formData.tanggal || !formData.jumlah}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              >
                 {editing ? 'Simpan Perubahan' : 'Tambah'}
               </Button>
             </DialogFooter>
