@@ -245,6 +245,7 @@ const FranchiseNetIncomePage = () => {
               <div className={`text-2xl font-bold ${totalNetIncome >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                 {formatCurrency(totalNetIncome)}
               </div>
+              <p className="text-xs text-muted-foreground mt-1">Periode: {periodLabel}</p>
             </CardContent>
           </Card>
           <Card>
@@ -256,6 +257,7 @@ const FranchiseNetIncomePage = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalFranchises}</div>
+              <p className="text-xs text-muted-foreground mt-1">Periode: {periodLabel}</p>
             </CardContent>
           </Card>
         </div>
