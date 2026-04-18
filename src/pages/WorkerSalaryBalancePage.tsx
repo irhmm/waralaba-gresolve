@@ -302,6 +302,13 @@ export default function WorkerSalaryBalancePage() {
     }
   };
 
+  // Dialog worker options: union of month workers + (if editing) the worker being edited
+  const dialogWorkerOptions = useMemo(() => {
+    const set = new Set(workerOptions.map(w => toTitleCase(w)));
+    if (editing) set.add(toTitleCase(editing.worker_name));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [workerOptions, editing]);
+
   if (!isFranchise) {
     return (
       <div className="p-6">
@@ -313,13 +320,6 @@ export default function WorkerSalaryBalancePage() {
       </div>
     );
   }
-
-  // Dialog worker options: union of month workers + (if editing) the worker being edited
-  const dialogWorkerOptions = useMemo(() => {
-    const set = new Set(workerOptions.map(w => toTitleCase(w)));
-    if (editing) set.add(toTitleCase(editing.worker_name));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [workerOptions, editing]);
 
   return (
     <div className="p-4 md:p-6 space-y-5 max-w-7xl mx-auto">
