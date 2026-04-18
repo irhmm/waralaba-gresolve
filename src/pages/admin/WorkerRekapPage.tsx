@@ -112,14 +112,21 @@ export default function WorkerRekapPage() {
     return filtered;
   }, [workerIncomes, searchTerm, selectedMonth]);
 
-  // Single summary card based on selected month
+  // Summary card synced with all active filters; defaults to current month
   const summaryData = useMemo(() => {
-    const items = selectedMonth === 'all' ? workerIncomes : workerIncomes.filter(item => {
-      return format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth;
-    });
+    const isFilterActive = searchTerm.trim() !== '' || (selectedMonth && selectedMonth !== 'all');
+    const currentMonth = format(new Date(), 'yyyy-MM');
+    const items = isFilterActive
+      ? filteredData
+      : filteredData.filter(item => format(new Date(item.tanggal), 'yyyy-MM') === currentMonth);
     const total = items.reduce((sum, item) => sum + item.fee, 0);
-    return { total, count: items.length };
-  }, [workerIncomes, selectedMonth]);
+    const label = isFilterActive
+      ? (selectedMonth !== 'all'
+          ? format(new Date(selectedMonth + '-01'), 'MMMM yyyy')
+          : 'Hasil Filter')
+      : format(new Date(), 'MMMM yyyy');
+    return { total, count: items.length, label };
+  }, [filteredData, searchTerm, selectedMonth]);
 
   // Group data by date for daily display
   const groupedByDate = useMemo(() => {
@@ -249,9 +256,7 @@ export default function WorkerRekapPage() {
       {/* Summary Card */}
       <Card>
         <CardContent className="p-4">
-          <p className="text-xs text-muted-foreground mb-1">
-            {selectedMonth === 'all' ? 'Total Semua Bulan' : format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: undefined })}
-          </p>
+          <p className="text-xs text-muted-foreground mb-1">{summaryData.label}</p>
           <p className="text-2xl font-bold text-green-600">
             Rp {summaryData.total.toLocaleString('id-ID')}
           </p>
