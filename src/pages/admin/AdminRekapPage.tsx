@@ -147,23 +147,30 @@ const AdminRekapPage = () => {
 
   const totalPages = Math.ceil(monthlyData.length / pageSize);
 
-  // Single summary card based on selected month
+  // Summary card synced with all active filters; defaults to current month
   const summaryData = useMemo(() => {
-    const items = selectedMonth === 'all' ? data : data.filter(item => {
-      return format(new Date(item.tanggal), 'yyyy-MM') === selectedMonth;
-    });
+    const isFilterActive = searchTerm.trim() !== '' || (selectedMonth && selectedMonth !== 'all');
+    const currentMonth = format(new Date(), 'yyyy-MM');
+    const items = isFilterActive
+      ? filteredData
+      : filteredData.filter(item => format(new Date(item.tanggal), 'yyyy-MM') === currentMonth);
     const total = items.reduce((sum, item) => sum + Number(item.nominal), 0);
-    return { total, count: items.length };
-  }, [data, selectedMonth]);
+    const label = isFilterActive
+      ? (selectedMonth !== 'all'
+          ? format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: id })
+          : 'Hasil Filter')
+      : format(new Date(), 'MMMM yyyy', { locale: id });
+    return { total, count: items.length, label };
+  }, [filteredData, searchTerm, selectedMonth]);
 
   const handleExport = () => {
     exportAdminRekapToExcel(monthlyData);
   };
 
   const totalFranchises = useMemo(() => {
-    const uniqueFranchises = new Set(data.map(item => item.franchise_id));
+    const uniqueFranchises = new Set(filteredData.map(item => item.franchise_id));
     return uniqueFranchises.size;
-  }, [data]);
+  }, [filteredData]);
 
   if (loading) {
     return (
@@ -211,9 +218,7 @@ const AdminRekapPage = () => {
         {/* Summary Card */}
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground mb-1">
-              {selectedMonth === 'all' ? 'Total Semua Bulan' : format(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: id })}
-            </p>
+            <p className="text-xs text-muted-foreground mb-1">{summaryData.label}</p>
             <p className="text-2xl font-bold text-green-600">
               Rp {summaryData.total.toLocaleString('id-ID')}
             </p>
