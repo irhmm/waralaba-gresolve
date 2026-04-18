@@ -508,6 +508,16 @@ export default function WorkerSalaryBalancePage() {
                 </TableBody>
               </Table>
             </div>
+            {detailIncomes.length > 0 && (
+              <DataTablePagination
+                currentPage={incomePage}
+                totalPages={incomeTotalPages}
+                pageSize={incomePageSize}
+                totalItems={detailIncomes.length}
+                onPageChange={setIncomePage}
+                onPageSizeChange={setIncomePageSize}
+              />
+            )}
           </CardContent>
         </Card>
 
