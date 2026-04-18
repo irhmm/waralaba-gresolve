@@ -190,21 +190,12 @@ export default function WorkerSalaryBalancePage() {
   };
 
   const openCreateDialog = () => {
-    if (!selectedWorker) return;
-    if (sisaSaldo <= 0) {
-      toast({
-        title: 'Tidak bisa menambah pengambilan',
-        description: 'Worker ini tidak punya saldo tersisa di bulan ini.',
-        variant: 'destructive',
-      });
-      return;
-    }
     setEditing(null);
     setFormData({
       tanggal: format(new Date(), 'yyyy-MM-dd'),
       jumlah: '',
       catatan: '',
-      worker_name: selectedWorker,
+      worker_name: selectedWorker || '',
     });
     setDialogOpen(true);
   };
