@@ -460,21 +460,15 @@ export default function WorkerSalaryBalancePage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {!selectedWorker ? (
+                  {loading ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
-                        Pilih worker untuk melihat rincian pendapatan.
-                      </TableCell>
-                    </TableRow>
-                  ) : loading ? (
-                    <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Memuat data...
                       </TableCell>
                     </TableRow>
                   ) : detailIncomes.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-10 text-sm">
+                      <TableCell colSpan={selectedWorker ? 4 : 5} className="text-center text-muted-foreground py-10 text-sm">
                         Tidak ada pendapatan di bulan ini.
                       </TableCell>
                     </TableRow>
@@ -484,6 +478,11 @@ export default function WorkerSalaryBalancePage() {
                         <TableCell className="whitespace-nowrap py-2 text-sm">
                           {format(new Date(i.tanggal), 'dd MMM yyyy', { locale: localeId })}
                         </TableCell>
+                        {!selectedWorker && (
+                          <TableCell className="py-2 text-sm font-medium">
+                            {i.worker_name ? toTitleCase(i.worker_name) : '-'}
+                          </TableCell>
+                        )}
                         <TableCell className="py-2">
                           {i.code ? <Badge variant="secondary" className="text-xs font-mono">{i.code}</Badge> : <span className="text-muted-foreground">-</span>}
                         </TableCell>
