@@ -588,6 +588,16 @@ export default function WorkerSalaryBalancePage() {
                 </TableBody>
               </Table>
             </div>
+            {detailWithdrawals.length > 0 && (
+              <DataTablePagination
+                currentPage={withdrawalPage}
+                totalPages={withdrawalTotalPages}
+                pageSize={withdrawalPageSize}
+                totalItems={detailWithdrawals.length}
+                onPageChange={setWithdrawalPage}
+                onPageSizeChange={setWithdrawalPageSize}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
