@@ -12,13 +12,13 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { 
-  Building2, 
-  DollarSign, 
-  Users, 
-  FileText, 
-  CreditCard, 
-  TrendingUp, 
+import {
+  Building2,
+  DollarSign,
+  Users,
+  FileText,
+  CreditCard,
+  TrendingUp,
   LogOut,
   BarChart3,
   UserCheck,
@@ -27,130 +27,109 @@ import {
   Wallet,
 } from 'lucide-react';
 
-const menuItems = {
+type MenuItem = {
+  title: string;
+  url: string;
+  icon: React.ComponentType<{ className?: string }>;
+};
+
+type MenuGroup = {
+  label: string;
+  items: MenuItem[];
+};
+
+const menuGroups: Record<string, MenuGroup[]> = {
   super_admin: [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
+      label: 'Keuangan',
+      items: [
+        { title: 'Dashboard', url: '/', icon: BarChart3 },
+        { title: 'Laba Bersih Franchise', url: '/admin/franchise-net-income', icon: DollarSign },
+        { title: 'Pengaturan Profit', url: '/admin/profit-sharing', icon: Percent },
+        { title: 'Data Bagi Hasil Franchise', url: '/admin/franchise-profit-sharing', icon: TrendingUp },
+      ],
     },
     {
-      title: 'List Franchise',
-      url: '/admin/franchises',
-      icon: Building2,
+      label: 'Franchise',
+      items: [
+        { title: 'List Franchise', url: '/admin/franchises', icon: Building2 },
+        { title: 'Add Franchise', url: '/admin/franchises/new', icon: Plus },
+      ],
     },
     {
-      title: 'Add Franchise',
-      url: '/admin/franchises/new',
-      icon: Plus,
+      label: 'Admin',
+      items: [
+        { title: 'Rekap Admin Wara', url: '/admin/admin-rekap', icon: DollarSign },
+      ],
     },
     {
-      title: 'Pengaturan Profit',
-      url: '/admin/profit-sharing',
-      icon: Percent,
-    },
-    {
-      title: 'Data Bagi Hasil Franchise',
-      url: '/admin/franchise-profit-sharing',
-      icon: TrendingUp,
-    },
-    {
-      title: 'Laba Bersih Franchise',
-      url: '/admin/franchise-net-income',
-      icon: DollarSign,
-    },
-    {
-      title: 'Rekap Worker Wara',
-      url: '/admin/worker-rekap',
-      icon: FileText,
-    },
-    {
-      title: 'Rekap Admin Wara',
-      url: '/admin/admin-rekap',
-      icon: DollarSign,
-    },
-    {
-      title: 'Data Worker',
-      url: '/admin/all-workers',
-      icon: Users,
+      label: 'Worker',
+      items: [
+        { title: 'Rekap Worker Wara', url: '/admin/worker-rekap', icon: FileText },
+        { title: 'Data Worker', url: '/admin/all-workers', icon: Users },
+      ],
     },
   ],
   franchise: [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
+      label: 'Keuangan',
+      items: [
+        { title: 'Dashboard', url: '/', icon: BarChart3 },
+        { title: 'Pengeluaran', url: '/expenses', icon: CreditCard },
+      ],
     },
     {
-      title: 'Pendapatan Worker',
-      url: '/worker-income',
-      icon: DollarSign,
+      label: 'Admin',
+      items: [
+        { title: 'Pendapatan Admin', url: '/admin-income', icon: TrendingUp },
+      ],
     },
     {
-      title: 'Pendapatan Admin',
-      url: '/admin-income',
-      icon: TrendingUp,
-    },
-    {
-      title: 'Sisa Gaji Worker',
-      url: '/worker-salary-balance',
-      icon: Wallet,
-    },
-    {
-      title: 'Pengeluaran',
-      url: '/expenses',
-      icon: CreditCard,
-    },
-    {
-      title: 'Data Worker',
-      url: '/workers',
-      icon: UserCheck,
+      label: 'Worker',
+      items: [
+        { title: 'Pendapatan Worker', url: '/worker-income', icon: DollarSign },
+        { title: 'Sisa Gaji Worker', url: '/worker-salary-balance', icon: Wallet },
+        { title: 'Data Worker', url: '/workers', icon: UserCheck },
+      ],
     },
   ],
   admin_keuangan: [
     {
-      title: 'Dashboard',
-      url: '/',
-      icon: BarChart3,
+      label: 'Keuangan',
+      items: [
+        { title: 'Dashboard', url: '/', icon: BarChart3 },
+        { title: 'Pengeluaran', url: '/expenses', icon: CreditCard },
+      ],
     },
     {
-      title: 'Pendapatan Worker',
-      url: '/worker-income',
-      icon: DollarSign,
+      label: 'Admin',
+      items: [
+        { title: 'Pendapatan Admin', url: '/admin-income', icon: TrendingUp },
+      ],
     },
     {
-      title: 'Pendapatan Admin',
-      url: '/admin-income',
-      icon: TrendingUp,
-    },
-    {
-      title: 'Pengeluaran',
-      url: '/expenses',
-      icon: CreditCard,
-    },
-    {
-      title: 'Data Worker',
-      url: '/workers',
-      icon: UserCheck,
+      label: 'Worker',
+      items: [
+        { title: 'Pendapatan Worker', url: '/worker-income', icon: DollarSign },
+        { title: 'Data Worker', url: '/workers', icon: UserCheck },
+      ],
     },
   ],
   admin_marketing: [
     {
-      title: 'Pendapatan Admin',
-      url: '/admin-income',
-      icon: TrendingUp,
-    },
-    {
-      title: 'Pendapatan Worker',
-      url: '/worker-income',
-      icon: DollarSign,
+      label: 'Menu Utama',
+      items: [
+        { title: 'Pendapatan Admin', url: '/admin-income', icon: TrendingUp },
+        { title: 'Pendapatan Worker', url: '/worker-income', icon: DollarSign },
+      ],
     },
   ],
   user: [
     {
-      title: 'Pendapatan Worker',
-      url: '/worker-income',
-      icon: DollarSign,
+      label: 'Menu Utama',
+      items: [
+        { title: 'Pendapatan Worker', url: '/worker-income', icon: DollarSign },
+      ],
     },
   ],
 };
@@ -163,44 +142,45 @@ export function AppSidebar() {
     return null;
   }
 
-  const items = menuItems[userRole.role] || [];
+  const groups = menuGroups[userRole.role] || [];
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent className="bg-card border-r">
-        <SidebarGroup>
-          <SidebarGroupLabel className="text-muted-foreground font-medium">
-            Menu Utama
-          </SidebarGroupLabel>
-          
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end
-                      className={({ isActive }) =>
-                        `sidebar-item ${isActive ? 'sidebar-item-active' : ''}`
-                      }
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {groups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel className="text-muted-foreground font-medium">
+              {group.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end
+                        className={({ isActive }) =>
+                          `sidebar-item ${isActive ? 'sidebar-item-active' : ''}`
+                        }
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
 
         <SidebarGroup className="mt-auto">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <button 
+                  <button
                     onClick={signOut}
                     className="sidebar-item w-full text-left text-destructive hover:text-destructive focus:text-destructive"
                   >
