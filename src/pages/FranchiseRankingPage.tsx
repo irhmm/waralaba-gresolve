@@ -79,10 +79,27 @@ const FranchiseRankingPage: React.FC = () => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(copyText);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(copyText);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = copyText;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.setAttribute('readonly', '');
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) throw new Error('execCommand failed');
+      }
       toast({ title: 'Disalin', description: 'Teks peringkat siap dibagikan ke grup.' });
-    } catch {
-      toast({ title: 'Gagal menyalin', variant: 'destructive' });
+    } catch (e: any) {
+      toast({
+        title: 'Gagal menyalin otomatis',
+        description: 'Salin manual dari kotak teks di bawah.',
+        variant: 'destructive',
+      });
     }
   };
 
