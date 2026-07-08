@@ -25,6 +25,7 @@ import {
   Plus,
   Percent,
   Wallet,
+  Trophy,
 } from 'lucide-react';
 
 type MenuItem = {
@@ -90,6 +91,12 @@ const menuGroups: Record<string, MenuGroup[]> = {
         { title: 'Pendapatan Worker', url: '/worker-income', icon: DollarSign },
         { title: 'Sisa Gaji Worker', url: '/worker-salary-balance', icon: Wallet },
         { title: 'Data Worker', url: '/workers', icon: UserCheck },
+      ],
+    },
+    {
+      label: 'Franchise',
+      items: [
+        { title: 'Peringkat Franchise', url: '/franchise-ranking', icon: Trophy },
       ],
     },
   ],
