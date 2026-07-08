@@ -79,10 +79,27 @@ const FranchiseRankingPage: React.FC = () => {
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(copyText);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(copyText);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = copyText;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.setAttribute('readonly', '');
+        document.body.appendChild(ta);
+        ta.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        if (!ok) throw new Error('execCommand failed');
+      }
       toast({ title: 'Disalin', description: 'Teks peringkat siap dibagikan ke grup.' });
-    } catch {
-      toast({ title: 'Gagal menyalin', variant: 'destructive' });
+    } catch (e: any) {
+      toast({
+        title: 'Gagal menyalin otomatis',
+        description: 'Salin manual dari kotak teks di bawah.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -175,6 +192,25 @@ const FranchiseRankingPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {rows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Teks siap salin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <textarea
+              readOnly
+              value={copyText}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full h-64 p-3 text-sm font-mono border rounded-md bg-muted/30 resize-y"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Jika tombol "Salin" gagal, klik kotak di atas dan tekan Ctrl/Cmd+C.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
