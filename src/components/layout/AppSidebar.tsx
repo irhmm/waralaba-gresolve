@@ -55,6 +55,7 @@ const menuGroups: Record<string, MenuGroup[]> = {
         { title: 'List Franchise', url: '/admin/franchises', icon: Building2 },
         { title: 'Add Franchise', url: '/admin/franchises/new', icon: Plus },
         { title: 'Data Bagi Hasil Franchise', url: '/admin/franchise-profit-sharing', icon: TrendingUp },
+        { title: 'Peringkat Franchise', url: '/franchise-ranking', icon: Trophy },
       ],
     },
     {
@@ -91,12 +92,6 @@ const menuGroups: Record<string, MenuGroup[]> = {
         { title: 'Pendapatan Worker', url: '/worker-income', icon: DollarSign },
         { title: 'Sisa Gaji Worker', url: '/worker-salary-balance', icon: Wallet },
         { title: 'Data Worker', url: '/workers', icon: UserCheck },
-      ],
-    },
-    {
-      label: 'Franchise',
-      items: [
-        { title: 'Peringkat Franchise', url: '/franchise-ranking', icon: Trophy },
       ],
     },
   ],

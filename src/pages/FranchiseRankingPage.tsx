@@ -38,7 +38,7 @@ const FranchiseRankingPage: React.FC = () => {
   const [rows, setRows] = useState<RankRow[]>([]);
   const [loading, setLoading] = useState(false);
 
-  if (userRole && userRole.role !== 'franchise') {
+  if (userRole && userRole.role !== 'super_admin') {
     return <Navigate to="/" replace />;
   }
 
