@@ -192,6 +192,25 @@ const FranchiseRankingPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {rows.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Teks siap salin</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <textarea
+              readOnly
+              value={copyText}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full h-64 p-3 text-sm font-mono border rounded-md bg-muted/30 resize-y"
+            />
+            <p className="text-xs text-muted-foreground mt-2">
+              Jika tombol "Salin" gagal, klik kotak di atas dan tekan Ctrl/Cmd+C.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
