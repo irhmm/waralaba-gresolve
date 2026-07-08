@@ -474,6 +474,20 @@ export type Database = {
           total_revenue: number
         }[]
       }
+      get_franchise_ranking: {
+        Args: { target_month_year?: string }
+        Returns: {
+          admin_income: number
+          expenses: number
+          franchise_code: string
+          franchise_id: string
+          franchise_name: string
+          omset: number
+          profit_share: number
+          rank_position: number
+          worker_income: number
+        }[]
+      }
       get_global_franchise_profit_settings: {
         Args: { target_franchise_id: string }
         Returns: {

@@ -20,6 +20,7 @@ import FranchiseNetIncomePage from "./pages/admin/FranchiseNetIncomePage";
 import AdminIncomePage from "./pages/AdminIncomePage";
 import WorkerIncomePage from "./pages/WorkerIncomePage";
 import WorkerSalaryBalancePage from "./pages/WorkerSalaryBalancePage";
+import FranchiseRankingPage from "./pages/FranchiseRankingPage";
 import ExpensesPage from "./pages/ExpensesPage";
 import WorkersPage from "./pages/WorkersPage";
 import AllWorkersPage from "./pages/admin/AllWorkersPage";
@@ -52,6 +53,7 @@ const App = () => (
               <Route path="worker-income" element={<RouteGuard><WorkerIncomePage /></RouteGuard>} />
               <Route path="worker-salary-balance" element={<RouteGuard><WorkerSalaryBalancePage /></RouteGuard>} />
               <Route path="expenses" element={<RouteGuard><ExpensesPage /></RouteGuard>} />
+              <Route path="franchise-ranking" element={<RouteGuard><FranchiseRankingPage /></RouteGuard>} />
               <Route path="workers" element={<RouteGuard><WorkersPage /></RouteGuard>} />
             </Route>
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
